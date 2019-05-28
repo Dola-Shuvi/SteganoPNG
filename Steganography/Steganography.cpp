@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
 	unsigned char* pixel = _image.data();
 
 	
-	writeLengthHeader(dataToHide.size(), pixel);
+	writeLengthHeader((unsigned int)dataToHide.size(), pixel);
 
 	readLengthHeader(pixel);
 	
@@ -59,14 +59,6 @@ void encodeOneStep(const char* filename, std::vector<unsigned char>& image, unsi
 	if (error) std::cout << "encoder error " << error << ": " << lodepng_error_text(error) << std::endl;
 }
 
-unsigned char setLastBit(unsigned char byte, int bit) {
-
-	int maskedOriginal = (byte & 0xFE);
-	unsigned char modifiedByte = (maskedOriginal | bit);
-
-	return modifiedByte;
-}
-
 std::vector<unsigned char> readAllBytes(std::string fileName) {
 	//open file
 	std::basic_ifstream<unsigned char> infile(fileName);
@@ -87,43 +79,75 @@ std::vector<unsigned char> readAllBytes(std::string fileName) {
 }
 
 std::string getFileName(std::string filename) {
+	//Get index of last slash in path.
 	const size_t last_slash_idx = filename.find_last_of("\\/");
+	
+	//Check if slash is the last character in the path.
 	if (std::string::npos != last_slash_idx)
 	{
+		//Erase everything before the last slash, including last slash.
 		filename.erase(0, last_slash_idx + 1);
 	}
 	return filename;
 }
 
+unsigned char setLastBit(unsigned char byte, int bit) {
+
+	//Create a mask of the original byte with 0xFE (0x11111110 or 254) via bitwise AND
+	int maskedOriginal = (byte & 0xFE);
+
+	//Create modified byte from the previously created mask and the bit that should be set via bitwise OR
+	unsigned char modifiedByte = (maskedOriginal | bit);
+
+	return modifiedByte;
+}
+
 int getLastBit(unsigned char byte) {
 
+	//Read LSB (Least significant bit) via bitwise AND with 0x1 (0x00000001 or 1)
 	int bit = (byte & 0x1);
 
 	return bit;
 }
 
 void writeLengthHeader(long length, unsigned char *pixel) {
+
+	//Create 32 bit bitset to contain header and initialize it with the value of length (how many bytes of data will be hidden in the image)
 	std::bitset<32> header(length);
 
 	std::cout << header.to_ulong() << " write header\n";
+
+	//create reversed index
 	int reversedIndex;
 	
 	for (int i = 0; i < 32; i++) {
 		reversedIndex = 31 - i;
+
+		//Overwrite the byte at position i (0-31) of the decoded pixel data with a modified byte. 
+		//The LSB of the modified byte is set to the bit value of header[reversedIndex] as the header is written to file starting with the MSB and the bitset starts with the LSB.
 		pixel[i] = setLastBit(pixel[i], header[reversedIndex]);
 	}
 }
 
 int readLengthHeader(unsigned char *pixel) {
 
+	//Create 32 bit bitset to contain the header thats read from file.
 	std::bitset<32> headerBits;
 
-	for (int i = 31; i >= 0; i--) {
-		headerBits[i] = getLastBit(pixel[31-i]);
+	//create reversed index
+	int reversedIndex;
+
+	for (int i = 0; i < 32; i++) {
+		reversedIndex = 31 - i;
+
+		//Set the bits of the header to the LSB of the read byte.
+		//The bits are written to the bitset in reverse order as the bits in the bitset start with the LSB and the bits read from file start with MSB.
+		headerBits[reversedIndex] = getLastBit(pixel[i]);
 	}
 
 	std::cout << headerBits.to_ulong() << " read header\n";
 
+	//Return the header bitset as int
 	return headerBits.to_ulong();
 }
 
