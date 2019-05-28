@@ -123,7 +123,7 @@ void writeLengthHeader(long length, unsigned char *pixel) {
 	for (int i = 0; i < 32; i++) {
 		reversedIndex = 31 - i;
 
-		//Overwrite the byte at position i (0-31) of the decoded pixel data with a modified byte. 
+		//Overwrite the byte at position i (0-31) of the decoded subpixel data with a modified byte. 
 		//The LSB of the modified byte is set to the bit value of header[reversedIndex] as the header is written to file starting with the MSB and the bitset starts with the LSB.
 		pixel[i] = setLastBit(pixel[i], header[reversedIndex]);
 	}
@@ -156,15 +156,26 @@ void hideDataInImage() {
 }
 
 std::vector<unsigned char> extractDataFromImage(int length, unsigned char *pixel) {
+	//Offset in subpixels to not read header data.
 	const int offset = 2080;
+
+	//Initialize vector to hold extracted data.
 	std::vector<unsigned char> data(length);
 
+	//Create 8 bit bitset to store and convert the read bits.
 	std::bitset<8> byte;
 
-	for (int i = 0; i < length; i++) {
+	//Counter to track which subpixel to read next.
+	int progressOffset;
 
+	//Loop through as many bytes as length tells us to.
+	for (int i = 0; i < length; i++) {
+		progressOffset = i * 8;
+		//For each byte of extracted data loop through 8 subpixels (2 full pixels).
 		for (int ii = 8; ii >= 0; ii--) {
-			byte[ii] = getLastBit(pixel[8 - ii + offset]);
+			//Set the bits of the header to the LSB of the read byte.
+			//The bits are written to the bitset in reverse order as the bits in the bitset start with the LSB and the bits read from file start with MSB.
+			byte[ii] = getLastBit(pixel[8 - ii + offset + progressOffset]);
 		}
 
 		data[i] = (unsigned char)byte.to_ulong();
