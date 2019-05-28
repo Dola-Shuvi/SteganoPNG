@@ -127,58 +127,6 @@ int readLengthHeader(unsigned char *pixel) {
 	return headerBits.to_ulong();
 }
 
-void writeWidthHeader(long length, unsigned char* pixel) {
-	int offset = 32;
-	std::bitset<16> header(length);
-
-	std::cout << header.to_ulong() << " write width header\n";
-	int reversedIndex;
-
-	for (int i = 0; i < 16; i++) {
-		reversedIndex = 15 - i;
-		pixel[i + offset] = setLastBit(pixel[i + offset], header[reversedIndex]);
-	}
-}
-
-int readWidthHeader(unsigned char* pixel) {
-	int offset = 32;
-	std::bitset<16> headerBits;
-
-	for (int i = 15; i >= 0; i--) {
-		headerBits[i] = getLastBit(pixel[offset + 15 - i]);
-	}
-
-	std::cout << headerBits.to_ulong() << " read header\n";
-
-	return headerBits.to_ulong();
-}
-
-void writeHeightHeader(long length, unsigned char* pixel) {
-	int offset = 48;
-	std::bitset<16> header(length);
-
-	std::cout << header.to_ulong() << " write height header\n";
-	int reversedIndex;
-
-	for (int i = 0; i < 16; i++) {
-		reversedIndex = 15 - i;
-		pixel[i + offset] = setLastBit(pixel[i + offset], header[reversedIndex]);
-	}
-}
-
-int readHeightHeader(unsigned char* pixel) {
-	int offset = 48;
-	std::bitset<16> headerBits;
-
-	for (int i = 15; i >= 0; i--) {
-		headerBits[i] = getLastBit(pixel[offset + 15 - i]);
-	}
-
-	std::cout << headerBits.to_ulong() << " read header\n";
-
-	return headerBits.to_ulong();
-}
-
 void hideDataInImage() {
 
 }

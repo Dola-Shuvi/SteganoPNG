@@ -21,11 +21,3 @@ void writeLengthHeader(long length, unsigned char *pixel);
 
 int readLengthHeader(unsigned char *pixel);
 
-void writeWidthHeader(long length, unsigned char* pixel);
-
-int readWidthHeader(unsigned char* pixel);
-
-void writeHeightHeader(long length, unsigned char* pixel);
-
-int readHeightHeader(unsigned char* pixel);
-
