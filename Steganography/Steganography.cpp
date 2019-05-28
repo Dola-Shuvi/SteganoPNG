@@ -131,6 +131,20 @@ void hideDataInImage() {
 
 }
 
-void extractDataFromImage() {
+std::vector<unsigned char> extractDataFromImage(int length, unsigned char *pixel) {
+	const int offset = 2080;
+	std::vector<unsigned char> data(length);
 
+	std::bitset<8> byte;
+
+	for (int i = 0; i < length; i++) {
+
+		for (int ii = 8; ii >= 0; ii--) {
+			byte[ii] = getLastBit(pixel[8 - ii + offset]);
+		}
+
+		data[i] = (unsigned char)byte.to_ulong();
+		byte.reset();
+	}
+	return data;
 }

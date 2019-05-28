@@ -21,3 +21,5 @@ void writeLengthHeader(long length, unsigned char *pixel);
 
 int readLengthHeader(unsigned char *pixel);
 
+std::vector<unsigned char> extractDataFromImage(int length, unsigned char* pixel);
+
