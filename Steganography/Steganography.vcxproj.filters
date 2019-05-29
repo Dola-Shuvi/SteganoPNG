@@ -18,15 +18,15 @@
     <ClCompile Include="Steganography.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\lib\native\src\lodepng.cpp">
+    <ClCompile Include="lodepng.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="Steganography.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="lodepng.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
