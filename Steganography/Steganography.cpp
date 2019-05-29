@@ -1,6 +1,3 @@
-// Steganography.cpp : Diese Datei enthält die Funktion "main". Hier beginnt und endet die Ausführung des Programms.
-//
-
 #include <stdlib.h>
 #include <stdio.h>
 #include "Steganography.h"
@@ -15,10 +12,9 @@ unsigned int _width;
 unsigned int _height;
 
 int main(int argc, char** argv) {
-	std::cout << getFileName(std::string(argv[2])) << "\n";
 
-	if (strcmp(argv[1], "a") == 0) {
-
+	if ((argc != 3 && argc != 4 || (strcmp(argv[1], "h") == 0) || (strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+		
 	}
 
 
@@ -29,13 +25,15 @@ int main(int argc, char** argv) {
 
 	
 	writeLengthHeader((unsigned int)dataToHide.size(), pixel);
-	writeFilenameHeader(std::string(argv[2]), pixel);
-	//writeFilenameHeader("8yxHc2E1iuRqgEhdVnJauNN9NNtydIFVUDqSJlorjDGOeCpMR1zBVEjXbbJejm73mzj2O1c7ZN2ql9LqV4ikJe90U25kRo20oUfnKkfanEzMsXKh1IKG598I2fDW6YKZhUenfDFsbrrzeckYbzekG29eqtfh7w8ZgNUhb2SRcyR1WFP3Sti7itffZ7WzjYGKmpYYt6b04AFjLYT6HKbS47TQ9H7HzqCFEeYX20axzQqByGqlZBRkO8xXcYchyQFr", pixel);
+	writeFilenameHeader(getFileName(std::string(argv[2])), pixel);
+	hideDataInImage(dataToHide, pixel);
+
 
 	encodeOneStep(argv[1], _image, _width, _height);
 
-	readLengthHeader(pixel);
+	int length = readLengthHeader(pixel);
 	std::string filename = readFilenameHeader(pixel);
+	std::vector<unsigned char> extractedData = extractDataFromImage(length, pixel);
 	
 
 	return 0;
@@ -49,7 +47,11 @@ void decodeOneStep(const char* filename) {
 	unsigned error = lodepng::decode(image, width, height, filename);
 
 	//if there's an error, display it
-	if (error) std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+	if (error) {
+		std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+		std::cout << "The image you provided is corrupted or not supported. Please provide a PNG file.\n";
+		exit(EXIT_FAILURE);
+	}
 
 	//the pixels are now in the vector "image", 4 bytes per pixel, ordered RGBARGBA..., use it as texture, draw it, ...
 	_image = image;
@@ -107,6 +109,21 @@ std::string TextToBinaryString(std::string words) {
 	return binaryString;
 }
 
+void printHelp() {
+	std::cout << "Syntax: Steganography <command> <image.png> [data.xxx]" << "\n\n"
+		<< "Commands:" << "\n"
+		<< "\ta" << "\t" << "Hide provided file in image" << "\n"
+		<< "\tx" << "\t" << "Extract file hidden in image" << "\n"
+		<< "\tt" << "\t" << "Verify if the image contains enough pixels to hide the data" << "\n"
+		<< "\th" << "\t" << "Show this help screen" << "\n\n"
+		<< "Examples:" << "\n"
+		<< "\tSteganography a image.png FileYouWantToHide.xyz\t to hide \"FileYouWantToHide.xyz\" inside image.png" << "\n"
+		<< "\tSteganography x image.png\t to extract the file hidden in image.png" << "\n"
+		<< "\tSteganography v image.png FileYouWantToHide.xyz\t to verify that the image contains enough pixels to hide all of the data" << "\n\n"
+		<< "Use this software at your OWN risk"
+		;
+}
+
 unsigned char setLastBit(unsigned char byte, int bit) {
 
 	//Create a mask of the original byte with 0xFE (0x11111110 or 254) via bitwise AND
@@ -128,6 +145,8 @@ int getLastBit(unsigned char byte) {
 
 void writeLengthHeader(long length, unsigned char *pixel) {
 
+	std::cout << "1 ";
+
 	//Create 32 bit bitset to contain header and initialize it with the value of length (how many bytes of data will be hidden in the image)
 	std::bitset<32> header(length);
 
@@ -146,6 +165,8 @@ void writeLengthHeader(long length, unsigned char *pixel) {
 }
 
 int readLengthHeader(unsigned char *pixel) {
+
+	std::cout << "4 ";
 
 	//Create 32 bit bitset to contain the header thats read from file.
 	std::bitset<32> headerBits;
@@ -169,15 +190,15 @@ int readLengthHeader(unsigned char *pixel) {
 
 void writeFilenameHeader(std::string fileName, unsigned char *pixel) {
 
+	std::cout << "2 ";
+
 	//Create 2048 bit bitset to contain filename header and initialize it with the value of filename.
 	std::bitset<2048> header(TextToBinaryString(fileName));
 
 	//Create offset to not overwrite length header.
 	const int offset = 32;
 
-	//std::cout << header.to_string() << " write filename header\n";
-
-	//create reversed index
+	//create reversed index.
 	int reversedIndex;
 	
 	for (int i = 0; i < 2048; i++) {
@@ -190,6 +211,8 @@ void writeFilenameHeader(std::string fileName, unsigned char *pixel) {
 }
 
 std::string readFilenameHeader(unsigned char *pixel) {
+
+	std::cout << "5 ";
 
 	//Create 2048 bit bitset to contain the header thats read from file.
 	std::bitset<2048> headerBits;
@@ -208,8 +231,6 @@ std::string readFilenameHeader(unsigned char *pixel) {
 		headerBits[reversedIndex] = getLastBit(pixel[i+offset]);
 	}
 
-	//std::cout << headerBits.to_string() << " read filename header\n";
-
 	//Convert binary to ascii
 	std::stringstream sstream(headerBits.to_string());
 	std::string output;
@@ -227,11 +248,41 @@ std::string readFilenameHeader(unsigned char *pixel) {
 	return headerBits.to_string();
 }
 
-void hideDataInImage() {
+void hideDataInImage(std::vector<unsigned char> data, unsigned char *pixel) {
+
+	std::cout << "3 ";
+
+	//Offset in subpixels to not overwrite header data.
+	const int offset = 2080;
+
+	//Create offset to track progress.
+	int progressOffset;
+
+	//Create reversed index.
+	int reversedIndex;
+
+	//Create 8 bit buffer to store bits of each byte.
+	std::bitset<8> buffer;
+
+	for (int i = 0; i < data.size(); i++) {
+		buffer = data[i];
+		progressOffset = i * 8;
+
+		for (int ii = 0; ii < 8; ii++) {
+			reversedIndex = 7 - ii;
+			pixel[ii + progressOffset + offset] = setLastBit(pixel[ii + progressOffset + offset], buffer[reversedIndex]);
+		}
+
+
+
+	}
 
 }
 
 std::vector<unsigned char> extractDataFromImage(int length, unsigned char *pixel) {
+
+	std::cout << "6 ";
+
 	//Offset in subpixels to not read header data.
 	const int offset = 2080;
 
@@ -248,14 +299,14 @@ std::vector<unsigned char> extractDataFromImage(int length, unsigned char *pixel
 	for (int i = 0; i < length; i++) {
 		progressOffset = i * 8;
 		//For each byte of extracted data loop through 8 subpixels (2 full pixels).
-		for (int ii = 8; ii >= 0; ii--) {
+		for (int ii = 7; ii >= 0; ii--) {
 			//Set the bits of the header to the LSB of the read byte.
 			//The bits are written to the bitset in reverse order as the bits in the bitset start with the LSB and the bits read from file start with MSB.
-			byte[ii] = getLastBit(pixel[8 - ii + offset + progressOffset]);
+			byte[ii] = getLastBit(pixel[7 - ii + offset + progressOffset]);
 		}
 
 		data[i] = (unsigned char)byte.to_ulong();
-		byte.reset();
 	}
+	std::cout << std::string(data.begin(), data.end()) << "\n";
 	return data;
 }
