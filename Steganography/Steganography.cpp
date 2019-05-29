@@ -8,6 +8,7 @@
 #include <iostream>
 #include <bitset>
 #include <fstream>
+#include <sstream>
 
 std::vector<unsigned char> _image;
 unsigned int _width;
@@ -28,8 +29,13 @@ int main(int argc, char** argv) {
 
 	
 	writeLengthHeader((unsigned int)dataToHide.size(), pixel);
+	writeFilenameHeader(std::string(argv[2]), pixel);
+	//writeFilenameHeader("8yxHc2E1iuRqgEhdVnJauNN9NNtydIFVUDqSJlorjDGOeCpMR1zBVEjXbbJejm73mzj2O1c7ZN2ql9LqV4ikJe90U25kRo20oUfnKkfanEzMsXKh1IKG598I2fDW6YKZhUenfDFsbrrzeckYbzekG29eqtfh7w8ZgNUhb2SRcyR1WFP3Sti7itffZ7WzjYGKmpYYt6b04AFjLYT6HKbS47TQ9H7HzqCFEeYX20axzQqByGqlZBRkO8xXcYchyQFr", pixel);
+
+	encodeOneStep(argv[1], _image, _width, _height);
 
 	readLengthHeader(pixel);
+	std::string filename = readFilenameHeader(pixel);
 	
 
 	return 0;
@@ -91,6 +97,16 @@ std::string getFileName(std::string filename) {
 	return filename;
 }
 
+std::string TextToBinaryString(std::string words) {
+	std::string binaryString = "";
+
+	//Loop through chars in string, put them in a bitset and return the bitset for each char as a string.
+	for (char& _char : words) {
+		binaryString += std::bitset<8>(_char).to_string();
+	}
+	return binaryString;
+}
+
 unsigned char setLastBit(unsigned char byte, int bit) {
 
 	//Create a mask of the original byte with 0xFE (0x11111110 or 254) via bitwise AND
@@ -149,6 +165,66 @@ int readLengthHeader(unsigned char *pixel) {
 
 	//Return the header bitset as int
 	return headerBits.to_ulong();
+}
+
+void writeFilenameHeader(std::string fileName, unsigned char *pixel) {
+
+	//Create 2048 bit bitset to contain filename header and initialize it with the value of filename.
+	std::bitset<2048> header(TextToBinaryString(fileName));
+
+	//Create offset to not overwrite length header.
+	const int offset = 32;
+
+	//std::cout << header.to_string() << " write filename header\n";
+
+	//create reversed index
+	int reversedIndex;
+	
+	for (int i = 0; i < 2048; i++) {
+		reversedIndex = 2047 - i;
+
+		//Overwrite the byte at position i (32-2079) of the decoded subpixel data with a modified byte. 
+		//The LSB of the modified byte is set to the bit value of header[reversedIndex] as the header is written to file starting with the MSB and the bitset starts with the LSB.
+		pixel[i + offset] = setLastBit(pixel[i + offset], header[reversedIndex]);
+	}
+}
+
+std::string readFilenameHeader(unsigned char *pixel) {
+
+	//Create 2048 bit bitset to contain the header thats read from file.
+	std::bitset<2048> headerBits;
+
+	//Create offset to not read length header.
+	const int offset = 32;
+
+	//create reversed index
+	int reversedIndex;
+
+	for (int i = 0; i < 2048; i++) {
+		reversedIndex = 2047 - i;
+
+		//Set the bits of the header to the LSB of the read byte.
+		//The bits are written to the bitset in reverse order as the bits in the bitset start with the LSB and the bits read from file start with MSB.
+		headerBits[reversedIndex] = getLastBit(pixel[i+offset]);
+	}
+
+	//std::cout << headerBits.to_string() << " read filename header\n";
+
+	//Convert binary to ascii
+	std::stringstream sstream(headerBits.to_string());
+	std::string output;
+	while (sstream.good())
+	{
+		std::bitset<8> bits;
+		sstream >> bits;
+		char c = char(bits.to_ulong());
+		output += c;
+	}
+
+	std::cout << output << "\n";
+
+	//Return the header bitset as int
+	return headerBits.to_string();
 }
 
 void hideDataInImage() {

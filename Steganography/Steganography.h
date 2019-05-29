@@ -17,9 +17,15 @@ std::vector<unsigned char> readAllBytes(std::string fileName);
 
 std::string getFileName(std::string filename);
 
+std::string TextToBinaryString(std::string words);
+
 void writeLengthHeader(long length, unsigned char *pixel);
 
 int readLengthHeader(unsigned char *pixel);
+
+void writeFilenameHeader(std::string fileName, unsigned char* pixel);
+
+std::string readFilenameHeader(unsigned char* pixel);
 
 std::vector<unsigned char> extractDataFromImage(int length, unsigned char* pixel);
 
