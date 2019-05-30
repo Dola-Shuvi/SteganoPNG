@@ -23,7 +23,7 @@ Download a precompiled binary on the releases tab or compile them yourself.
 Building
 -----
 
-Building on unix systems is greatly simplified by using a Makefile.  Simply run `make` inside the project folder. Building on unix requires the C++ compiler `g++` to be installed.
+Building on unix systems is greatly simplified by using a Makefile.  Simply run `make` inside the project folder. Building on unix requires the C++ compiler `g++` version 8 to be installed.
 
 Building on windows is as simple as cloning the repository into Visual Studio 2019 and building.
 
