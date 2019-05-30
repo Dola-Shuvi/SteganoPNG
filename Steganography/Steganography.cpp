@@ -51,6 +51,14 @@ int main(int argc, char** argv) {
 
 		int length = readLengthHeader(pixel);
 		std::string filename = readFilenameHeader(pixel);
+
+		std::ofstream src(filename);
+		if (!src) {
+			std::cout << "This file does not contain a valid filename header. Are you sure it contains hidden data?\n";
+			exit(EXIT_FAILURE);
+		}
+
+
 		std::vector<unsigned char> extractedData = extractDataFromImage(length, pixel);
 		writeAllBytes(filename, extractedData);
 
