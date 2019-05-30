@@ -121,30 +121,10 @@ std::vector<unsigned char> readAllBytes(std::string fileName) {
 	//Close instream
 	infile.close();
 
-	std::ofstream of;
-	of.open("debugReadAllBytes.txt", std::ios::out);
-
-	std::cout << buffer.size() << "\n";
-	for (int i = 0; i < buffer.size(); i++) {
-		of << buffer[i];
-	}
-
-	of.close();
-
 	return buffer;
 }
 
 void writeAllBytes(std::string fileName, std::vector<unsigned char> data) {
-
-	std::ofstream debugof;
-	debugof.open("debugWriteAllBytes.txt", std::ios::out);
-
-	std::cout << data.size() << "\n";
-	for (int i = 0; i < data.size(); i++) {
-		debugof << data[i];
-	}
-
-	debugof.close();
 	
 	std::ofstream of;
 	of.open(fileName, std::ios::out | std::ios::binary);
@@ -376,8 +356,6 @@ std::vector<unsigned char> extractDataFromImage(int length, unsigned char *pixel
 
 		data[i] = (unsigned char)byte.to_ulong();
 	}
-
-	std::cout << data.size() << "\n";
 
 	return data;
 }
