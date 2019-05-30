@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <algorithm>
 #include "Steganography.h"
 #include "lodepng.h"
 #include <iostream>
@@ -14,27 +15,42 @@ unsigned int _height;
 int main(int argc, char** argv) {
 
 	if ((argc != 3 && argc != 4 || (strcmp(argv[1], "h") == 0) || (strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
-		
+		printHelp();
+		exit(EXIT_SUCCESS);
 	}
 
+	if (strcmp(argv[1], "a") == 0) {
+		decodeOneStep(argv[2]);
+		std::vector<unsigned char> dataToHide = readAllBytes(argv[3]);
+		unsigned char* pixel = _image.data();
 
+		writeLengthHeader((unsigned int)dataToHide.size(), pixel);
+		writeFilenameHeader(getFileName(std::string(argv[3])), pixel);
+		hideDataInImage(dataToHide, pixel);
 
-	decodeOneStep(argv[1]);
-	std::vector<unsigned char> dataToHide = readAllBytes(argv[2]);
-	unsigned char* pixel = _image.data();
+		encodeOneStep(argv[2], _image, _width, _height);
 
-	
-	writeLengthHeader((unsigned int)dataToHide.size(), pixel);
-	writeFilenameHeader(getFileName(std::string(argv[2])), pixel);
-	hideDataInImage(dataToHide, pixel);
+		exit(EXIT_SUCCESS);
+	}
+	else if (strcmp(argv[1], "x") == 0){
+		decodeOneStep(argv[2]);
+		unsigned char* pixel = _image.data();
 
+		int length = readLengthHeader(pixel);
+		std::string filename = readFilenameHeader(pixel);
+		std::vector<unsigned char> extractedData = extractDataFromImage(length, pixel);
+		writeAllBytes(filename, extractedData);
 
-	encodeOneStep(argv[1], _image, _width, _height);
-
-	int length = readLengthHeader(pixel);
-	std::string filename = readFilenameHeader(pixel);
-	std::vector<unsigned char> extractedData = extractDataFromImage(length, pixel);
-	
+	}
+	else if (strcmp(argv[1], "t") == 0) {
+		decodeOneStep(argv[2]);
+		validateStorageSpace(argv[2], argv[3]);
+		exit(EXIT_SUCCESS);
+	}
+	else {
+		printHelp();
+		exit(EXIT_FAILURE);
+	}
 
 	return 0;
 }
@@ -68,22 +84,34 @@ void encodeOneStep(const char* filename, std::vector<unsigned char>& image, unsi
 }
 
 std::vector<unsigned char> readAllBytes(std::string fileName) {
-	//open file
+	//Open file
 	std::basic_ifstream<unsigned char> infile(fileName);
 	std::vector<unsigned char> buffer;
 
-	//get length of file
+	//Get length of file
 	infile.seekg(0, infile.end);
 	size_t length = infile.tellg();
 	infile.seekg(0, infile.beg);
 
-	//read file
+	//Read file
 	if (length > 0) {
 		buffer.resize(length);
 		infile.read(&buffer[0], length);
 	}
 
+	//Close instream
+	infile.close();
+
 	return buffer;
+}
+
+void writeAllBytes(std::string fileName, std::vector<unsigned char> data) {
+	
+	std::ofstream of;
+	of.open(fileName, std::ios::out | std::ios::binary);
+	of.write((char*)&data[0], data.size());
+	of.close();
+
 }
 
 std::string getFileName(std::string filename) {
@@ -114,14 +142,32 @@ void printHelp() {
 		<< "Commands:" << "\n"
 		<< "\ta" << "\t" << "Hide provided file in image" << "\n"
 		<< "\tx" << "\t" << "Extract file hidden in image" << "\n"
-		<< "\tt" << "\t" << "Verify if the image contains enough pixels to hide the data" << "\n"
+		<< "\tt" << "\t" << "Verify if the image contains enough pixels for storage" << "\n"
 		<< "\th" << "\t" << "Show this help screen" << "\n\n"
 		<< "Examples:" << "\n"
 		<< "\tSteganography a image.png FileYouWantToHide.xyz\t to hide \"FileYouWantToHide.xyz\" inside image.png" << "\n"
-		<< "\tSteganography x image.png\t to extract the file hidden in image.png" << "\n"
-		<< "\tSteganography v image.png FileYouWantToHide.xyz\t to verify that the image contains enough pixels to hide all of the data" << "\n\n"
+		<< "\tSteganography x image.png\t\t\t to extract the file hidden in image.png" << "\n"
+		<< "\tSteganography v image.png FileYouWantToHide.xyz\t to verify that the image contains enough pixels for storage" << "\n\n"
 		<< "Use this software at your OWN risk"
 		;
+}
+
+bool validateStorageSpace(char* imageFile, char* dataFile) {
+
+	bool result = false;
+
+	int subpixelcount = _width * _height * 4;
+	int dataLength = 8 * readAllBytes(dataFile).size();
+	if ((subpixelcount - 32 - 2048) > dataLength) {
+		std::cout << "The file " << getFileName(imageFile) << " contains enough pixels to hide all data of " << getFileName(dataFile) << " .\n";
+		result = true;
+	}
+	else {
+		std::cout << "The file " << getFileName(imageFile) << " does not contain enough pixels to hide all data of " << getFileName(dataFile) << " .\n";
+		exit(EXIT_FAILURE);
+	}
+
+	return result;
 }
 
 unsigned char setLastBit(unsigned char byte, int bit) {
@@ -145,12 +191,8 @@ int getLastBit(unsigned char byte) {
 
 void writeLengthHeader(long length, unsigned char *pixel) {
 
-	std::cout << "1 ";
-
 	//Create 32 bit bitset to contain header and initialize it with the value of length (how many bytes of data will be hidden in the image)
 	std::bitset<32> header(length);
-
-	std::cout << header.to_ulong() << " write header\n";
 
 	//create reversed index
 	int reversedIndex;
@@ -166,8 +208,6 @@ void writeLengthHeader(long length, unsigned char *pixel) {
 
 int readLengthHeader(unsigned char *pixel) {
 
-	std::cout << "4 ";
-
 	//Create 32 bit bitset to contain the header thats read from file.
 	std::bitset<32> headerBits;
 
@@ -182,15 +222,11 @@ int readLengthHeader(unsigned char *pixel) {
 		headerBits[reversedIndex] = getLastBit(pixel[i]);
 	}
 
-	std::cout << headerBits.to_ulong() << " read header\n";
-
 	//Return the header bitset as int
 	return headerBits.to_ulong();
 }
 
 void writeFilenameHeader(std::string fileName, unsigned char *pixel) {
-
-	std::cout << "2 ";
 
 	//Create 2048 bit bitset to contain filename header and initialize it with the value of filename.
 	std::bitset<2048> header(TextToBinaryString(fileName));
@@ -211,8 +247,6 @@ void writeFilenameHeader(std::string fileName, unsigned char *pixel) {
 }
 
 std::string readFilenameHeader(unsigned char *pixel) {
-
-	std::cout << "5 ";
 
 	//Create 2048 bit bitset to contain the header thats read from file.
 	std::bitset<2048> headerBits;
@@ -241,16 +275,14 @@ std::string readFilenameHeader(unsigned char *pixel) {
 		char c = char(bits.to_ulong());
 		output += c;
 	}
-
-	std::cout << output << "\n";
+	//Remove all NUL chars from output
+	output.erase(std::remove(output.begin(), output.end(), '\0'), output.end());
 
 	//Return the header bitset as int
-	return headerBits.to_string();
+	return output;
 }
 
 void hideDataInImage(std::vector<unsigned char> data, unsigned char *pixel) {
-
-	std::cout << "3 ";
 
 	//Offset in subpixels to not overwrite header data.
 	const int offset = 2080;
@@ -281,8 +313,6 @@ void hideDataInImage(std::vector<unsigned char> data, unsigned char *pixel) {
 
 std::vector<unsigned char> extractDataFromImage(int length, unsigned char *pixel) {
 
-	std::cout << "6 ";
-
 	//Offset in subpixels to not read header data.
 	const int offset = 2080;
 
@@ -307,6 +337,5 @@ std::vector<unsigned char> extractDataFromImage(int length, unsigned char *pixel
 
 		data[i] = (unsigned char)byte.to_ulong();
 	}
-	std::cout << std::string(data.begin(), data.end()) << "\n";
 	return data;
 }

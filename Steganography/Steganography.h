@@ -15,11 +15,15 @@ int getLastBit(unsigned char byte);
 
 std::vector<unsigned char> readAllBytes(std::string fileName);
 
+void writeAllBytes(std::string fileName, std::vector<unsigned char> data);
+
 std::string getFileName(std::string filename);
 
 std::string TextToBinaryString(std::string words);
 
 void printHelp();
+
+bool validateStorageSpace(char* imageFile, char* dataFile);
 
 void writeLengthHeader(long length, unsigned char *pixel);
 
