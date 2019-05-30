@@ -7,6 +7,7 @@
 #include <bitset>
 #include <fstream>
 #include <sstream>
+#include <filesystem>
 
 std::vector<unsigned char> _image;
 unsigned int _width;
@@ -20,6 +21,12 @@ int main(int argc, char** argv) {
 	}
 
 	if (strcmp(argv[1], "a") == 0) {
+
+		if (!(std::filesystem::exists(argv[2]) && std::filesystem::exists(argv[3]))) {
+			std::cout << "One or more specified files do not exist\n";
+			exit(EXIT_FAILURE);
+		}
+
 		decodeOneStep(argv[2]);
 		std::vector<unsigned char> dataToHide = readAllBytes(argv[3]);
 		unsigned char* pixel = _image.data();
@@ -33,6 +40,12 @@ int main(int argc, char** argv) {
 		exit(EXIT_SUCCESS);
 	}
 	else if (strcmp(argv[1], "x") == 0){
+
+		if (!std::filesystem::exists(argv[2])) {
+			std::cout << "One or more specified files do not exist\n";
+			exit(EXIT_FAILURE);
+		}
+
 		decodeOneStep(argv[2]);
 		unsigned char* pixel = _image.data();
 
@@ -43,6 +56,12 @@ int main(int argc, char** argv) {
 
 	}
 	else if (strcmp(argv[1], "t") == 0) {
+
+		if (!(std::filesystem::exists(argv[2]) && std::filesystem::exists(argv[3]))){
+			std::cout << "One or more specified files do not exist\n";
+			exit(EXIT_FAILURE);
+		}
+
 		decodeOneStep(argv[2]);
 		validateStorageSpace(argv[2], argv[3]);
 		exit(EXIT_SUCCESS);
@@ -85,7 +104,7 @@ void encodeOneStep(const char* filename, std::vector<unsigned char>& image, unsi
 
 std::vector<unsigned char> readAllBytes(std::string fileName) {
 	//Open file
-	std::basic_ifstream<unsigned char> infile(fileName);
+	std::ifstream infile(fileName, std::ios::in | std::ios::binary);
 	std::vector<unsigned char> buffer;
 
 	//Get length of file
@@ -96,16 +115,36 @@ std::vector<unsigned char> readAllBytes(std::string fileName) {
 	//Read file
 	if (length > 0) {
 		buffer.resize(length);
-		infile.read(&buffer[0], length);
+		infile.read((char*)&buffer[0], length);
 	}
 
 	//Close instream
 	infile.close();
 
+	std::ofstream of;
+	of.open("debugReadAllBytes.txt", std::ios::out);
+
+	std::cout << buffer.size() << "\n";
+	for (int i = 0; i < buffer.size(); i++) {
+		of << buffer[i];
+	}
+
+	of.close();
+
 	return buffer;
 }
 
 void writeAllBytes(std::string fileName, std::vector<unsigned char> data) {
+
+	std::ofstream debugof;
+	debugof.open("debugWriteAllBytes.txt", std::ios::out);
+
+	std::cout << data.size() << "\n";
+	for (int i = 0; i < data.size(); i++) {
+		debugof << data[i];
+	}
+
+	debugof.close();
 	
 	std::ofstream of;
 	of.open(fileName, std::ios::out | std::ios::binary);
@@ -337,5 +376,8 @@ std::vector<unsigned char> extractDataFromImage(int length, unsigned char *pixel
 
 		data[i] = (unsigned char)byte.to_ulong();
 	}
+
+	std::cout << data.size() << "\n";
+
 	return data;
 }
