@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <algorithm>
-#include "Steganography.h"
+#include "SteganoPNG.h"
 #include "lodepng.h"
 #include <iostream>
 #include <bitset>
@@ -165,16 +165,16 @@ std::string TextToBinaryString(std::string words) {
 }
 
 void printHelp() {
-	std::cout << "Syntax: Steganography <command> <image.png> [data.xxx]" << "\n\n"
+	std::cout << "Syntax: SteganoPNG <command> <image.png> [data.xxx]" << "\n\n"
 		<< "Commands:" << "\n"
 		<< "\ta" << "\t" << "Hide provided file in image" << "\n"
 		<< "\tx" << "\t" << "Extract file hidden in image" << "\n"
 		<< "\tt" << "\t" << "Verify if the image contains enough pixels for storage" << "\n"
 		<< "\th" << "\t" << "Show this help screen" << "\n\n"
 		<< "Examples:" << "\n"
-		<< "\tSteganography a image.png FileYouWantToHide.xyz\t to hide \"FileYouWantToHide.xyz\" inside image.png" << "\n"
-		<< "\tSteganography x image.png\t\t\t to extract the file hidden in image.png" << "\n"
-		<< "\tSteganography v image.png FileYouWantToHide.xyz\t to verify that the image contains enough pixels for storage" << "\n\n"
+		<< "\tSteganoPNG a image.png FileYouWantToHide.xyz\t to hide \"FileYouWantToHide.xyz\" inside image.png" << "\n"
+		<< "\tSteganoPNG x image.png\t\t\t to extract the file hidden in image.png" << "\n"
+		<< "\tSteganoPNG v image.png FileYouWantToHide.xyz\t to verify that the image contains enough pixels for storage" << "\n\n"
 		<< "Use this software at your OWN risk"
 		;
 }

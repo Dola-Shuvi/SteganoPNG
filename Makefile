@@ -1,15 +1,15 @@
 CXX=g++
-CXXFLAGS=-O2 -std=c++17 -o Steganography
+CXXFLAGS=-O2 -std=c++17 -o SteganoPNG
 LDLIBS=-lstdc++fs
 
 all: install
 
 install: lodepng
 	cd Steganography; \
-	$(CXX) $(CXXFLAGS) Steganography.cpp lodepng.cpp $(LDLIBS); \
+	$(CXX) $(CXXFLAGS) SteganoPNG.cpp lodepng.cpp $(LDLIBS); \
 	cd ..; \
 	mkdir -p build; \
-	mv Steganography/Steganography build/Steganography
+	mv Steganography/SteganoPNG build/SteganoPNG
 	
 lodepng:
 	cd Steganography; \
@@ -17,4 +17,4 @@ lodepng:
 	
 clean:
 	rm -rf build/* \
-	rm Steganography/Steganography
+	rm Steganography/SteganoPNG

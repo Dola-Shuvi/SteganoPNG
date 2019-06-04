@@ -1,16 +1,16 @@
-Steganography
+SteganoPNG
 =================
 
 C++ program based on stegonographical methods to hide files in PNG images using the Least Significant Bit technique.
 
-I used the most basic method which is the least significant bit. A pixel in a PNG image is composed of a red, green, blue and alpha channel encoded in one byte each.
+SteganoPNG uses the most basic method which is the least significant bit. A pixel in a PNG image is composed of a red, green, blue and alpha channel encoded in one byte each.
  The least significant bit was chosen to visually modify the image as little as possible.
 
 
 Information
 -----------
 
-Steganography uses LodePNG to hide data in PNG files. It uses the first bit of each color channel, including the alpha channel, of a pixel. 
+SteganoPNG uses LodePNG to hide data in PNG files. It uses the first bit of each color channel, including the alpha channel, of a pixel. 
 The program can hide all of the data if there is enough space in the image. **You need roughly twice as many pixels as bytes you want to hide**.
 
 > *Only PNG files are supported* to obtain maximum storage capacity within the image.
@@ -32,9 +32,9 @@ Usage
 -----
 
 ```
-Steganography
+SteganoPNG
 
-Syntax: Steganography <command> <image.png> [data.xxx]
+Syntax: SteganoPNG <command> <image.png> [data.xxx]
 
 Commands:
         a       Hide provided file in image
@@ -43,9 +43,9 @@ Commands:
         h       Show this help screen
 
 Examples:
-        Steganography a image.png FileYouWantToHide.xyz  to hide "FileYouWantToHide.xyz" inside image.png
-        Steganography x image.png                        to extract the file hidden in image.png
-        Steganography v image.png FileYouWantToHide.xyz  to verify that the image contains enough pixels for storage
+        SteganoPNG a image.png FileYouWantToHide.xyz  to hide "FileYouWantToHide.xyz" inside image.png
+        SteganoPNG x image.png                        to extract the file hidden in image.png
+        SteganoPNG v image.png FileYouWantToHide.xyz  to verify that the image contains enough pixels for storage
 ```
 
 Dependencies

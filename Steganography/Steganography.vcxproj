@@ -22,8 +22,9 @@
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{DBEC13EF-D492-43AE-A7DF-548743B81B96}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>Steganography</RootNamespace>
+    <RootNamespace>SteganoPNG</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>SteganoPNG</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -160,11 +161,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="lodepng.cpp" />
-    <ClCompile Include="Steganography.cpp" />
+    <ClCompile Include="SteganoPNG.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="lodepng.h" />
-    <ClInclude Include="Steganography.h" />
+    <ClInclude Include="SteganoPNG.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
