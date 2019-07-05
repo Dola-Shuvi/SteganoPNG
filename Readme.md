@@ -45,7 +45,7 @@ Commands:
 Examples:
         SteganoPNG a image.png FileYouWantToHide.xyz  to hide "FileYouWantToHide.xyz" inside image.png
         SteganoPNG x image.png                        to extract the file hidden in image.png
-        SteganoPNG v image.png FileYouWantToHide.xyz  to verify that the image contains enough pixels for storage
+        SteganoPNG t image.png FileYouWantToHide.xyz  to verify that the image contains enough pixels for storage
 ```
 
 Dependencies

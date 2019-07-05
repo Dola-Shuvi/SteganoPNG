@@ -174,7 +174,7 @@ void printHelp() {
 		<< "Examples:" << "\n"
 		<< "\tSteganoPNG a image.png FileYouWantToHide.xyz\t to hide \"FileYouWantToHide.xyz\" inside image.png" << "\n"
 		<< "\tSteganoPNG x image.png\t\t\t to extract the file hidden in image.png" << "\n"
-		<< "\tSteganoPNG v image.png FileYouWantToHide.xyz\t to verify that the image contains enough pixels for storage" << "\n\n"
+		<< "\tSteganoPNG t image.png FileYouWantToHide.xyz\t to verify that the image contains enough pixels for storage" << "\n\n"
 		<< "Use this software at your OWN risk"
 		;
 }
