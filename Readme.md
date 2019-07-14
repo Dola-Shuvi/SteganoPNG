@@ -18,15 +18,21 @@ The program can hide all of the data if there is enough space in the image. **Yo
 Installation
 ------------
 
-Download a precompiled binary on the releases tab or compile them yourself.
+Download a precompiled binary on the releases tab or compile them yourself. The provided binaries are 64-bit builds.
 
 Building
 -----
 
 Building on unix systems is greatly simplified by using a Makefile.  Simply run `make` inside the project folder. Building on unix requires the C++ compiler `g++` version 8 to be installed.
 
-Building on windows is as simple as cloning the repository into Visual Studio 2019 and building.
+Building on windows is as simple as cloning the repository into Visual Studio 2019 and building the **Release** or **Debug** configuration.
 
+The **Release-CryptoPP** and **Debug-CryptoPP** configurations on Windows contain encryption features and are disabled by default. If you wish to enable them comment out `#define NOCRYPTOPP` in [SteganoPNG.h](https://github.com/Dola-Shuvi/SteganoPNG/blob/master/Steganography/SteganoPNG.h) and [SteganoPNG.cpp](https://github.com/Dola-Shuvi/SteganoPNG/blob/master/Steganography/SteganoPNG.cpp) . 
+You will need to extract a Crypto++ release in the Crypto++ folder and place the built **cryptlib.lib** in that folder as well.
+
+On Unix comment out `#define NOCRYPTOPP` in [SteganoPNG.h](https://github.com/Dola-Shuvi/SteganoPNG/blob/master/Steganography/SteganoPNG.h) and [SteganoPNG.cpp](https://github.com/Dola-Shuvi/SteganoPNG/blob/master/Steganography/SteganoPNG.cpp) . Build and install Crypto++ from source. Then simply run `make` .
+
+ For information on how to use the feature please run `SteganoPNG -h` .
 
 Usage
 -----
@@ -53,6 +59,9 @@ Dependencies
 
 This program depends on [LodePNG](https://github.com/lvandeve/lodepng).
 LodePNG is licensed under the zlib license.
+
+This program can optionally use [Crypto++](https://github.com/weidai11/cryptopp) for more features.
+
 
 License
 -------
