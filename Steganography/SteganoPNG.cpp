@@ -1,38 +1,71 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <algorithm>
-#include "SteganoPNG.h"
-#include "lodepng.h"
 #include <iostream>
 #include <bitset>
 #include <fstream>
 #include <sstream>
 #include <filesystem>
+using namespace std;
 
-std::vector<unsigned char> _image;
+#define NOCRYPTOPP
+
+#ifndef NOCRYPTOPP
+#include "cryptlib.h"
+#include "filters.h"
+#include "files.h"
+#include "modes.h"
+#include "queue.h"
+#include "aes.h"
+#include "sha.h"
+using namespace CryptoPP;
+#endif // !NOCRYPTOPP
+
+#include "SteganoPNG.h"
+#include "lodepng.h"
+
+vector<unsigned char> _image;
 unsigned int _width;
 unsigned int _height;
 
 int main(int argc, char** argv) {
 
-	if ((argc != 3 && argc != 4 || (strcmp(argv[1], "h") == 0) || (strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+#ifndef NOCRYPTOPP
+	if (((argc != 3 && argc != 4 && argc != 5 && argc != 6) || (strcmp(argv[1], "h") == 0) || (strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+#else
+	if (((argc != 3 && argc != 4) || (strcmp(argv[1], "h") == 0) || (strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
+#endif
 		printHelp();
 		exit(EXIT_SUCCESS);
 	}
 
 	if (strcmp(argv[1], "a") == 0) {
-
-		if (!(std::filesystem::exists(argv[2]) && std::filesystem::exists(argv[3]))) {
-			std::cout << "One or more specified files do not exist\n";
+		if (!(filesystem::exists(argv[2]) && filesystem::exists(argv[3]))) {
+			cout << "One or more specified files do not exist" << endl;
 			exit(EXIT_FAILURE);
 		}
 
 		decodeOneStep(argv[2]);
-		std::vector<unsigned char> dataToHide = readAllBytes(argv[3]);
+		vector<unsigned char> dataToHide = readAllBytes(argv[3]);
 		unsigned char* pixel = _image.data();
 
+#ifndef NOCRYPTOPP
+		if (argc == 6) {
+			if (strcmp(argv[4], "-p") == 0) {
+				CryptoPP::byte key[AES::MAX_KEYLENGTH];
+				CryptoPP::byte iv[AES::BLOCKSIZE];
+
+				memcpy(key, generateSHA256(argv[5]), sizeof(key));
+				memcpy(iv, key, sizeof(iv));
+
+				dataToHide = Encrypt(key, iv, dataToHide);
+			}
+		}
+#endif // !NOCRYPTOPP
+
+
 		writeLengthHeader((unsigned int)dataToHide.size(), pixel);
-		writeFilenameHeader(getFileName(std::string(argv[3])), pixel);
+		writeFilenameHeader(getFileName(string(argv[3])), pixel);
 		hideDataInImage(dataToHide, pixel);
 
 		encodeOneStep(argv[2], _image, _width, _height);
@@ -41,8 +74,8 @@ int main(int argc, char** argv) {
 	}
 	else if (strcmp(argv[1], "x") == 0){
 
-		if (!std::filesystem::exists(argv[2])) {
-			std::cout << "One or more specified files do not exist\n";
+		if (!filesystem::exists(argv[2])) {
+			cout << "One or more specified files do not exist" << endl;
 			exit(EXIT_FAILURE);
 		}
 
@@ -50,28 +83,44 @@ int main(int argc, char** argv) {
 		unsigned char* pixel = _image.data();
 
 		int length = readLengthHeader(pixel);
-		std::string filename = readFilenameHeader(pixel);
+		string filename = readFilenameHeader(pixel);
 
-		std::ofstream src(filename);
+		ofstream src(filename);
 		if (!src) {
-			std::cout << "This file does not contain a valid filename header. Are you sure it contains hidden data?\n";
+			cout << "This file does not contain a valid filename header. Are you sure it contains hidden data?" << endl;
 			exit(EXIT_FAILURE);
 		}
 
 
-		std::vector<unsigned char> extractedData = extractDataFromImage(length, pixel);
+		vector<unsigned char> extractedData = extractDataFromImage(length, pixel);
+
+#ifndef NOCRYPTOPP
+		if (argc == 5) {
+			if (strcmp(argv[3], "-p") == 0) {
+				CryptoPP::byte key[AES::MAX_KEYLENGTH];
+				CryptoPP::byte iv[AES::BLOCKSIZE];
+
+				memcpy(key, generateSHA256(argv[4]), sizeof(key));
+				memcpy(iv, key, sizeof(iv));
+
+				extractedData = Decrypt(key, iv, extractedData);
+			}
+		}
+#endif // !NOCRYPTOPP
+
 		writeAllBytes(filename, extractedData);
 
 	}
 	else if (strcmp(argv[1], "t") == 0) {
 
-		if (!(std::filesystem::exists(argv[2]) && std::filesystem::exists(argv[3]))){
-			std::cout << "One or more specified files do not exist\n";
+		if (!(filesystem::exists(argv[2]) && filesystem::exists(argv[3]))){
+			cout << "One or more specified files do not exist" << endl;
 			exit(EXIT_FAILURE);
 		}
 
 		decodeOneStep(argv[2]);
 		validateStorageSpace(argv[2], argv[3]);
+		cout << "The file " << getFileName(argv[2]) << " contains enough pixels to hide all data of " << getFileName(argv[2]) << " ." << endl;
 		exit(EXIT_SUCCESS);
 	}
 	else {
@@ -83,7 +132,7 @@ int main(int argc, char** argv) {
 }
 
 void decodeOneStep(const char* filename) {
-	std::vector<unsigned char> image; //the raw pixels
+	vector<unsigned char> image; //the raw pixels
 	unsigned width, height;
 
 	//decode
@@ -91,8 +140,8 @@ void decodeOneStep(const char* filename) {
 
 	//if there's an error, display it
 	if (error) {
-		std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
-		std::cout << "The image you provided is corrupted or not supported. Please provide a PNG file.\n";
+		cout << "decoder error " << error << ": " << lodepng_error_text(error) << endl;
+		cout << "The image you provided is corrupted or not supported. Please provide a PNG file." << endl;
 		exit(EXIT_FAILURE);
 	}
 
@@ -102,18 +151,18 @@ void decodeOneStep(const char* filename) {
 	_height = height;
 }
 
-void encodeOneStep(const char* filename, std::vector<unsigned char>& image, unsigned width, unsigned height) {
+void encodeOneStep(const char* filename, vector<unsigned char>& image, unsigned width, unsigned height) {
 	//Encode the image
 	unsigned error = lodepng::encode(filename, image, width, height);
 
 	//if there's an error, display it
-	if (error) std::cout << "encoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+	if (error) cout << "encoder error " << error << ": " << lodepng_error_text(error) << endl;
 }
 
-std::vector<unsigned char> readAllBytes(std::string fileName) {
+vector<unsigned char> readAllBytes(string fileName) {
 	//Open file
-	std::ifstream infile(fileName, std::ios::in | std::ios::binary);
-	std::vector<unsigned char> buffer;
+	ifstream infile(fileName, ios::in | ios::binary);
+	vector<unsigned char> buffer;
 
 	//Get length of file
 	infile.seekg(0, infile.end);
@@ -132,21 +181,21 @@ std::vector<unsigned char> readAllBytes(std::string fileName) {
 	return buffer;
 }
 
-void writeAllBytes(std::string fileName, std::vector<unsigned char> data) {
+void writeAllBytes(string fileName, vector<unsigned char> data) {
 	
-	std::ofstream of;
-	of.open(fileName, std::ios::out | std::ios::binary);
+	ofstream of;
+	of.open(fileName, ios::out | ios::binary);
 	of.write((char*)&data[0], data.size());
 	of.close();
 
 }
 
-std::string getFileName(std::string filename) {
+string getFileName(string filename) {
 	//Get index of last slash in path.
 	const size_t last_slash_idx = filename.find_last_of("\\/");
 	
 	//Check if slash is the last character in the path.
-	if (std::string::npos != last_slash_idx)
+	if (string::npos != last_slash_idx)
 	{
 		//Erase everything before the last slash, including last slash.
 		filename.erase(0, last_slash_idx + 1);
@@ -154,27 +203,34 @@ std::string getFileName(std::string filename) {
 	return filename;
 }
 
-std::string TextToBinaryString(std::string words) {
-	std::string binaryString = "";
+string TextToBinaryString(string words) {
+	string binaryString = "";
 
 	//Loop through chars in string, put them in a bitset and return the bitset for each char as a string.
 	for (char& _char : words) {
-		binaryString += std::bitset<8>(_char).to_string();
+		binaryString += bitset<8>(_char).to_string();
 	}
 	return binaryString;
 }
 
 void printHelp() {
-	std::cout << "Syntax: SteganoPNG <command> <image.png> [data.xxx]" << "\n\n"
-		<< "Commands:" << "\n"
-		<< "\ta" << "\t" << "Hide provided file in image" << "\n"
-		<< "\tx" << "\t" << "Extract file hidden in image" << "\n"
-		<< "\tt" << "\t" << "Verify if the image contains enough pixels for storage" << "\n"
-		<< "\th" << "\t" << "Show this help screen" << "\n\n"
-		<< "Examples:" << "\n"
-		<< "\tSteganoPNG a image.png FileYouWantToHide.xyz\t to hide \"FileYouWantToHide.xyz\" inside image.png" << "\n"
-		<< "\tSteganoPNG x image.png\t\t\t to extract the file hidden in image.png" << "\n"
-		<< "\tSteganoPNG t image.png FileYouWantToHide.xyz\t to verify that the image contains enough pixels for storage" << "\n\n"
+
+#ifndef NOCRYPTOPP
+	cout << "Syntax: SteganoPNG <command> <image.png> [data.xxx] [-p <password>]" << endl << endl
+#endif // !NOCRYPTOPP
+#ifdef NOCRYPTOPP
+	cout << "Syntax: SteganoPNG <command> <image.png> [data.xxx]" << endl << endl
+#endif // NOCRYPTOPP
+
+		<< "Commands:" << endl
+		<< "\ta" << "\t" << "Hide provided file in image" << endl
+		<< "\tx" << "\t" << "Extract file hidden in image" << endl
+		<< "\tt" << "\t" << "Verify if the image contains enough pixels for storage" << endl
+		<< "\th" << "\t" << "Show this help screen" << endl << endl
+		<< "Examples:" << endl
+		<< "\tSteganoPNG a image.png FileYouWantToHide.xyz\t to hide \"FileYouWantToHide.xyz\" inside image.png" << endl
+		<< "\tSteganoPNG x image.png\t\t\t\t to extract the file hidden in image.png" << endl
+		<< "\tSteganoPNG t image.png FileYouWantToHide.xyz\t to verify that the image contains enough pixels for storage" << endl << endl
 		<< "Use this software at your OWN risk"
 		;
 }
@@ -186,11 +242,10 @@ bool validateStorageSpace(char* imageFile, char* dataFile) {
 	int subpixelcount = _width * _height * 4;
 	int dataLength = 8 * readAllBytes(dataFile).size();
 	if ((subpixelcount - 32 - 2048) > dataLength) {
-		std::cout << "The file " << getFileName(imageFile) << " contains enough pixels to hide all data of " << getFileName(dataFile) << " .\n";
 		result = true;
 	}
 	else {
-		std::cout << "The file " << getFileName(imageFile) << " does not contain enough pixels to hide all data of " << getFileName(dataFile) << " .\n";
+		cout << "The file " << getFileName(imageFile) << " does not contain enough pixels to hide all data of " << getFileName(dataFile) << " ." << endl;
 		exit(EXIT_FAILURE);
 	}
 
@@ -219,7 +274,7 @@ int getLastBit(unsigned char byte) {
 void writeLengthHeader(long length, unsigned char *pixel) {
 
 	//Create 32 bit bitset to contain header and initialize it with the value of length (how many bytes of data will be hidden in the image)
-	std::bitset<32> header(length);
+	bitset<32> header(length);
 
 	//create reversed index
 	int reversedIndex;
@@ -236,7 +291,7 @@ void writeLengthHeader(long length, unsigned char *pixel) {
 int readLengthHeader(unsigned char *pixel) {
 
 	//Create 32 bit bitset to contain the header thats read from file.
-	std::bitset<32> headerBits;
+	bitset<32> headerBits;
 
 	//create reversed index
 	int reversedIndex;
@@ -253,10 +308,10 @@ int readLengthHeader(unsigned char *pixel) {
 	return headerBits.to_ulong();
 }
 
-void writeFilenameHeader(std::string fileName, unsigned char *pixel) {
+void writeFilenameHeader(string fileName, unsigned char *pixel) {
 
 	//Create 2048 bit bitset to contain filename header and initialize it with the value of filename.
-	std::bitset<2048> header(TextToBinaryString(fileName));
+	bitset<2048> header(TextToBinaryString(fileName));
 
 	//Create offset to not overwrite length header.
 	const int offset = 32;
@@ -273,10 +328,10 @@ void writeFilenameHeader(std::string fileName, unsigned char *pixel) {
 	}
 }
 
-std::string readFilenameHeader(unsigned char *pixel) {
+string readFilenameHeader(unsigned char *pixel) {
 
 	//Create 2048 bit bitset to contain the header thats read from file.
-	std::bitset<2048> headerBits;
+	bitset<2048> headerBits;
 
 	//Create offset to not read length header.
 	const int offset = 32;
@@ -293,23 +348,23 @@ std::string readFilenameHeader(unsigned char *pixel) {
 	}
 
 	//Convert binary to ascii
-	std::stringstream sstream(headerBits.to_string());
-	std::string output;
+	stringstream sstream(headerBits.to_string());
+	string output;
 	while (sstream.good())
 	{
-		std::bitset<8> bits;
+		bitset<8> bits;
 		sstream >> bits;
 		char c = char(bits.to_ulong());
 		output += c;
 	}
 	//Remove all NUL chars from output
-	output.erase(std::remove(output.begin(), output.end(), '\0'), output.end());
+	output.erase(remove(output.begin(), output.end(), '\0'), output.end());
 
 	//Return the header bitset as int
 	return output;
 }
 
-void hideDataInImage(std::vector<unsigned char> data, unsigned char *pixel) {
+void hideDataInImage(vector<unsigned char> data, unsigned char *pixel) {
 
 	//Offset in subpixels to not overwrite header data.
 	const int offset = 2080;
@@ -321,9 +376,9 @@ void hideDataInImage(std::vector<unsigned char> data, unsigned char *pixel) {
 	int reversedIndex;
 
 	//Create 8 bit buffer to store bits of each byte.
-	std::bitset<8> buffer;
+	bitset<8> buffer;
 
-	for (int i = 0; i < data.size(); i++) {
+	for (int i = 0; i < (int)data.size(); i++) {
 		buffer = data[i];
 		progressOffset = i * 8;
 
@@ -338,16 +393,16 @@ void hideDataInImage(std::vector<unsigned char> data, unsigned char *pixel) {
 
 }
 
-std::vector<unsigned char> extractDataFromImage(int length, unsigned char *pixel) {
+vector<unsigned char> extractDataFromImage(int length, unsigned char *pixel) {
 
 	//Offset in subpixels to not read header data.
 	const int offset = 2080;
 
 	//Initialize vector to hold extracted data.
-	std::vector<unsigned char> data(length);
+	vector<unsigned char> data(length);
 
 	//Create 8 bit bitset to store and convert the read bits.
-	std::bitset<8> byte;
+	bitset<8> byte;
 
 	//Counter to track which subpixel to read next.
 	int progressOffset;
@@ -367,3 +422,81 @@ std::vector<unsigned char> extractDataFromImage(int length, unsigned char *pixel
 
 	return data;
 }
+
+#ifndef NOCRYPTOPP
+
+vector<unsigned char> Encrypt(CryptoPP::byte key[], CryptoPP::byte iv[], vector<unsigned char> data) {
+
+	CryptoPP::byte keycopy[AES::MAX_KEYLENGTH];
+	memcpy(keycopy, key, sizeof(keycopy));
+
+	CryptoPP::byte ivcopy[AES::BLOCKSIZE];
+	memcpy(ivcopy, iv, sizeof(ivcopy));
+
+	CBC_Mode<AES>::Encryption enc;
+	enc.SetKeyWithIV(keycopy, sizeof(keycopy), ivcopy, sizeof(ivcopy));
+	memset(key, 0x00, sizeof(keycopy));
+	memset(iv, 0x00, sizeof(ivcopy));
+	memset(keycopy, 0x00, sizeof(keycopy));
+	memset(ivcopy, 0x00, sizeof(ivcopy));
+
+	vector<unsigned char> cipher;
+
+	// Make room for padding
+	cipher.resize(data.size() + AES::BLOCKSIZE);
+	ArraySink cs(&cipher[0], cipher.size());
+
+	ArraySource(data.data(), data.size(), true,
+		new StreamTransformationFilter(enc, new Redirector(cs), StreamTransformationFilter::PKCS_PADDING));
+
+	// Set cipher text length now that its known
+	cipher.resize(cs.TotalPutLength());
+
+	return cipher;
+}
+
+vector<unsigned char> Decrypt(CryptoPP::byte key[], CryptoPP::byte iv[], vector<unsigned char> data) {
+
+	CryptoPP::byte keycopy[AES::MAX_KEYLENGTH];
+	memcpy(keycopy, key, sizeof(keycopy));
+
+	CryptoPP::byte ivcopy[AES::BLOCKSIZE];
+	memcpy(ivcopy, iv, sizeof(ivcopy));
+
+	CBC_Mode<AES>::Decryption dec;
+	dec.SetKeyWithIV(keycopy, sizeof(keycopy), ivcopy, sizeof(ivcopy));
+	memset(key, 0x00, sizeof(keycopy));
+	memset(iv, 0x00, sizeof(ivcopy));
+	memset(keycopy, 0x00, sizeof(keycopy));
+	memset(ivcopy, 0x00, sizeof(ivcopy));
+
+	vector<unsigned char> recover;
+
+	// Recovered text will be less than cipher text
+	recover.resize(data.size());
+	ArraySink rs(&recover[0], recover.size());
+
+	ArraySource(data.data(), data.size(), true,
+		new StreamTransformationFilter(dec, new Redirector(rs), StreamTransformationFilter::PKCS_PADDING));
+
+	// Set recovered text length now that its known
+	recover.resize(rs.TotalPutLength());
+
+	return recover;
+}
+
+CryptoPP::byte* generateSHA256(string data)
+{
+	CryptoPP::byte const* pbData = (CryptoPP::byte*)data.data();
+	unsigned int nDataLen = data.size();
+	CryptoPP::byte abDigest[SHA256::DIGESTSIZE];
+
+	SHA256().CalculateDigest(abDigest, pbData, nDataLen);
+
+	CryptoPP::byte* output = new CryptoPP::byte[SHA256::DIGESTSIZE];
+	memcpy(output, abDigest, SHA256::DIGESTSIZE);
+
+	return output;
+}
+
+#endif // !NOCRYPTOPP

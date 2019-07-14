@@ -1,25 +1,33 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "lodepng.h"
 #include <iostream>
 #include <bitset>
 #include <fstream>
+using namespace std;
+
+#define NOCRYPTOPP
+
+#ifndef NOCRYPTOPP
+#include "config.h"
+#endif // !NOCRYPTOPP	
+
+#include "lodepng.h"
 
 void decodeOneStep(const char* filename);
 
-void encodeOneStep(const char* filename, std::vector<unsigned char>& image, unsigned width, unsigned height);
+void encodeOneStep(const char* filename, vector<unsigned char>& image, unsigned width, unsigned height);
 
 unsigned char setLastBit(unsigned char byte, int bit);
 
 int getLastBit(unsigned char byte);
 
-std::vector<unsigned char> readAllBytes(std::string fileName);
+vector<unsigned char> readAllBytes(string fileName);
 
-void writeAllBytes(std::string fileName, std::vector<unsigned char> data);
+void writeAllBytes(string fileName, vector<unsigned char> data);
 
-std::string getFileName(std::string filename);
+string getFileName(string filename);
 
-std::string TextToBinaryString(std::string words);
+string TextToBinaryString(string words);
 
 void printHelp();
 
@@ -29,11 +37,19 @@ void writeLengthHeader(long length, unsigned char *pixel);
 
 int readLengthHeader(unsigned char *pixel);
 
-void writeFilenameHeader(std::string fileName, unsigned char* pixel);
+void writeFilenameHeader(string fileName, unsigned char* pixel);
 
-std::string readFilenameHeader(unsigned char* pixel);
+string readFilenameHeader(unsigned char* pixel);
 
-void hideDataInImage(std::vector<unsigned char> data, unsigned char* pixel);
+void hideDataInImage(vector<unsigned char> data, unsigned char* pixel);
 
-std::vector<unsigned char> extractDataFromImage(int length, unsigned char* pixel);
+vector<unsigned char> extractDataFromImage(int length, unsigned char* pixel);
 
+#ifndef NOCRYPTOPP
+vector<unsigned char> Encrypt(CryptoPP::byte key[], CryptoPP::byte iv[], vector<unsigned char> data);
+
+vector<unsigned char> Decrypt(CryptoPP::byte key[], CryptoPP::byte iv[], vector<unsigned char> data);
+
+CryptoPP::byte* generateSHA256(string data);
+
+#endif // !NOCRYPTOPP

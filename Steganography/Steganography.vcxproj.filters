@@ -13,21 +13,24 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="LodePNG">
+      <UniqueIdentifier>{28529b71-92fb-4588-9484-803cc7127002}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="lodepng.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
     <ClCompile Include="SteganoPNG.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="LodePNG\lodepng.cpp">
+      <Filter>LodePNG</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="lodepng.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="SteganoPNG.h">
       <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="LodePNG\lodepng.h">
+      <Filter>LodePNG</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
