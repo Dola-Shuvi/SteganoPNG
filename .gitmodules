@@ -1,3 +1,4 @@
 [submodule "Steganography/CryptoPP"]
 	path = Steganography/CryptoPP
 	url = https://github.com/weidai11/cryptopp.git
+	ignore = untracked

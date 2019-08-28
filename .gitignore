@@ -20,7 +20,7 @@
 [Rr]eleases/
 x64/
 x86/
-win32/
+[Ww]in32/
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
 bld/
