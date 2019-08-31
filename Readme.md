@@ -1,4 +1,7 @@
 SteganoPNG
+![](https://img.shields.io/github/downloads/Dola-Shuvi/SteganoPNG/total?color=brightgreen)
+![](https://img.shields.io/github/v/release/Dola-Shuvi/SteganoPNG?include_prereleases)
+![](https://img.shields.io/badge/platform-linux--64%20%7C%20win--32%20%7C%20win--64-lightgray)
 =================
 
 C++ program based on stegonographical methods to hide files in PNG images using the Least Significant Bit technique.
