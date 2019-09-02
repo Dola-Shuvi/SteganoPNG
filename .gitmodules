@@ -2,3 +2,6 @@
 	path = Steganography/CryptoPP
 	url = https://github.com/weidai11/cryptopp.git
 	ignore = untracked
+[submodule "Steganography/zopfli"]
+	path = Steganography/zopfli
+	url = https://github.com/google/zopfli.git
