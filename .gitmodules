@@ -5,3 +5,4 @@
 [submodule "Steganography/zopfli"]
 	path = Steganography/zopfli
 	url = https://github.com/google/zopfli.git
+	ignore = untracked
