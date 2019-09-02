@@ -8,9 +8,8 @@
 #include <filesystem>
 using namespace std;
 
-#define NOCRYPTOPP
+//#define USEZOPFLI
 
-#ifndef NOCRYPTOPP
 #include "cryptlib.h"
 #include "filters.h"
 #include "files.h"
@@ -18,23 +17,23 @@ using namespace std;
 #include "queue.h"
 #include "aes.h"
 #include "sha.h"
+#include "zlib.h"
 using namespace CryptoPP;
-#endif // !NOCRYPTOPP
 
 #include "SteganoPNG.h"
 #include "lodepng.h"
+
+#ifdef USEZOPFLI
+#include "zopfli.h"
+#endif // USEZOPFLI
+
 
 vector<unsigned char> _image;
 unsigned int _width;
 unsigned int _height;
 
 int main(int argc, char** argv) {
-
-#ifndef NOCRYPTOPP
-	if (((argc != 3 && argc != 4 && argc != 5 && argc != 6) || (strcmp(argv[1], "h") == 0) || (strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
-#else
-	if (((argc != 3 && argc != 4) || (strcmp(argv[1], "h") == 0) || (strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
-#endif
+	if (((argc != 3 && argc != 4 && argc != 5 && argc != 6 && argc != 7) || (strcmp(argv[1], "h") == 0) || (strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
 		printHelp();
 		exit(EXIT_SUCCESS);
 	}
@@ -46,11 +45,32 @@ int main(int argc, char** argv) {
 		}
 
 		decodeOneStep(argv[2]);
+
+		bool compression = true;
+		if (argc > 4) {
+			if (strcmp(argv[4], "--no-compression") == 0) compression = false;
+		}
+		else if (argc > 6) {
+			if (strcmp(argv[6], "--no-compression") == 0) compression = false;
+		}
+
+		validateStorageSpace(argv[2], argv[3], compression);
+
 		vector<unsigned char> dataToHide = readAllBytes(argv[3]);
+
+		if (compression) {
+
+#ifndef USEZOPFLI
+			dataToHide = zlibCompress(dataToHide);
+#else
+			dataToHide = zopfliCompress(dataToHide);
+#endif // USEZOPFLI
+			dataToHide.shrink_to_fit();
+		}
+
 		unsigned char* pixel = _image.data();
 
-#ifndef NOCRYPTOPP
-		if (argc == 6) {
+		if (argc == 6 || argc == 7) {
 			if (strcmp(argv[4], "-p") == 0) {
 				CryptoPP::byte key[AES::MAX_KEYLENGTH];
 				CryptoPP::byte iv[AES::BLOCKSIZE];
@@ -61,7 +81,6 @@ int main(int argc, char** argv) {
 				dataToHide = Encrypt(key, iv, dataToHide);
 			}
 		}
-#endif // !NOCRYPTOPP
 
 
 		writeLengthHeader((unsigned int)dataToHide.size(), pixel);
@@ -79,6 +98,14 @@ int main(int argc, char** argv) {
 			exit(EXIT_FAILURE);
 		}
 
+		bool compression = true;
+		if (argc > 3) {
+			if (strcmp(argv[3], "--no-compression") == 0) compression = false;
+		}
+		else if (argc > 5) {
+			if (strcmp(argv[5], "--no-compression") == 0) compression = false;
+		}
+
 		decodeOneStep(argv[2]);
 		unsigned char* pixel = _image.data();
 
@@ -94,19 +121,32 @@ int main(int argc, char** argv) {
 
 		vector<unsigned char> extractedData = extractDataFromImage(length, pixel);
 
-#ifndef NOCRYPTOPP
-		if (argc == 5) {
+		if (argc == 5 || argc == 6) {
 			if (strcmp(argv[3], "-p") == 0) {
 				CryptoPP::byte key[AES::MAX_KEYLENGTH];
 				CryptoPP::byte iv[AES::BLOCKSIZE];
 
 				memcpy(key, generateSHA256(argv[4]), sizeof(key));
 				memcpy(iv, key, sizeof(iv));
-
-				extractedData = Decrypt(key, iv, extractedData);
+				try {
+					//In case a password is specified with the -p argument but the data isnt encrypted
+					extractedData = Decrypt(key, iv, extractedData);
+				}
+				catch (Exception ex) {
+					//ignore error silently
+				}
+				
 			}
 		}
-#endif // !NOCRYPTOPP
+
+			try {
+				//if the data was saved with the --no-compression flag this will cause an error and instead use the original value for extractedData
+				extractedData = zlibDecompress(extractedData);
+				extractedData.shrink_to_fit();
+			}
+			catch (Exception ex) {
+				//ignore error silently
+			}
 
 		writeAllBytes(filename, extractedData);
 
@@ -119,7 +159,15 @@ int main(int argc, char** argv) {
 		}
 
 		decodeOneStep(argv[2]);
-		validateStorageSpace(argv[2], argv[3]);
+
+		bool compression = true;
+		if (argc > 4) {
+			if (strcmp(argv[4], "--no-compression")) compression = false;
+		}
+		
+
+		validateStorageSpace(argv[2], argv[3], compression);
+
 		cout << "The file " << getFileName(argv[2]) << " contains enough pixels to hide all data of " << getFileName(argv[2]) << " ." << endl;
 		exit(EXIT_SUCCESS);
 	}
@@ -130,6 +178,76 @@ int main(int argc, char** argv) {
 
 	return 0;
 }
+
+#pragma region Auxilary
+
+string getFileName(string filename) {
+	//Get index of last slash in path.
+	const size_t last_slash_idx = filename.find_last_of("\\/");
+
+	//Check if slash is the last character in the path.
+	if (string::npos != last_slash_idx)
+	{
+		//Erase everything before the last slash, including last slash.
+		filename.erase(0, last_slash_idx + 1);
+	}
+	return filename;
+}
+
+string TextToBinaryString(string words) {
+	string binaryString = "";
+
+	//Loop through chars in string, put them in a bitset and return the bitset for each char as a string.
+	for (char& _char : words) {
+		binaryString += bitset<8>(_char).to_string();
+	}
+	return binaryString;
+}
+
+void printHelp() {
+
+	cout << "Syntax: SteganoPNG <command> <image.png> [data.xyz] [-p <password>] [--no-compression]" << endl << endl
+
+		<< "Commands:" << endl
+		<< "\ta" << "\t" << "Hide provided file in image" << endl
+		<< "\tx" << "\t" << "Extract file hidden in image" << endl
+		<< "\tt" << "\t" << "Verify if the image contains enough pixels for storage" << endl
+		<< "\th" << "\t" << "Show this help screen" << endl << endl
+		<< "Examples:" << endl
+		<< "\tSteganoPNG a image.png FileYouWantToHide.xyz\t to hide \"FileYouWantToHide.xyz\" inside image.png" << endl
+		<< "\tSteganoPNG x image.png\t\t\t\t to extract the file hidden in image.png" << endl
+		<< "\tSteganoPNG t image.png FileYouWantToHide.xyz\t to verify that the image contains enough pixels for storage" << endl << endl
+		<< "Use this software at your OWN risk" << endl
+		;
+}
+
+bool validateStorageSpace(char* imageFile, char* dataFile, bool compression = true) {
+
+	bool result = false;
+
+	vector<unsigned char> data = readAllBytes(dataFile);
+
+	if (compression) {
+		data = zlibCompress(data);
+		data.shrink_to_fit();
+	}
+
+	size_t subpixelcount = (size_t)_width * (size_t)_height * 4;
+	size_t dataLength = 8 * data.size();
+	if ((subpixelcount - 2048 - 32) > dataLength) {
+		result = true;
+	}
+	else {
+		cout << "The file " << getFileName(imageFile) << " does not contain enough pixels to hide all data of " << getFileName(dataFile) << " ." << endl;
+		exit(EXIT_FAILURE);
+	}
+
+	return result;
+}
+
+#pragma endregion
+
+#pragma region DiskIO
 
 void decodeOneStep(const char* filename) {
 	vector<unsigned char> image; //the raw pixels
@@ -172,7 +290,7 @@ vector<unsigned char> readAllBytes(string fileName) {
 	//Read file
 	if (length > 0) {
 		buffer.resize(length);
-		infile.read((char*)&buffer[0], length);
+		infile.read((char*)& buffer[0], length);
 	}
 
 	//Close instream
@@ -182,189 +300,19 @@ vector<unsigned char> readAllBytes(string fileName) {
 }
 
 void writeAllBytes(string fileName, vector<unsigned char> data) {
-	
+
 	ofstream of;
 	of.open(fileName, ios::out | ios::binary);
-	of.write((char*)&data[0], data.size());
+	of.write((char*)& data[0], data.size());
 	of.close();
 
 }
 
-string getFileName(string filename) {
-	//Get index of last slash in path.
-	const size_t last_slash_idx = filename.find_last_of("\\/");
-	
-	//Check if slash is the last character in the path.
-	if (string::npos != last_slash_idx)
-	{
-		//Erase everything before the last slash, including last slash.
-		filename.erase(0, last_slash_idx + 1);
-	}
-	return filename;
-}
+#pragma endregion
 
-string TextToBinaryString(string words) {
-	string binaryString = "";
+#pragma region Steganography
 
-	//Loop through chars in string, put them in a bitset and return the bitset for each char as a string.
-	for (char& _char : words) {
-		binaryString += bitset<8>(_char).to_string();
-	}
-	return binaryString;
-}
-
-void printHelp() {
-
-#ifndef NOCRYPTOPP
-	cout << "Syntax: SteganoPNG <command> <image.png> [data.xxx] [-p <password>]" << endl << endl
-#endif // !NOCRYPTOPP
-#ifdef NOCRYPTOPP
-	cout << "Syntax: SteganoPNG <command> <image.png> [data.xxx]" << endl << endl
-#endif // NOCRYPTOPP
-
-		<< "Commands:" << endl
-		<< "\ta" << "\t" << "Hide provided file in image" << endl
-		<< "\tx" << "\t" << "Extract file hidden in image" << endl
-		<< "\tt" << "\t" << "Verify if the image contains enough pixels for storage" << endl
-		<< "\th" << "\t" << "Show this help screen" << endl << endl
-		<< "Examples:" << endl
-		<< "\tSteganoPNG a image.png FileYouWantToHide.xyz\t to hide \"FileYouWantToHide.xyz\" inside image.png" << endl
-		<< "\tSteganoPNG x image.png\t\t\t\t to extract the file hidden in image.png" << endl
-		<< "\tSteganoPNG t image.png FileYouWantToHide.xyz\t to verify that the image contains enough pixels for storage" << endl << endl
-		<< "Use this software at your OWN risk"
-		;
-}
-
-bool validateStorageSpace(char* imageFile, char* dataFile) {
-
-	bool result = false;
-
-	int subpixelcount = _width * _height * 4;
-	int dataLength = 8 * readAllBytes(dataFile).size();
-	if ((subpixelcount - 32 - 2048) > dataLength) {
-		result = true;
-	}
-	else {
-		cout << "The file " << getFileName(imageFile) << " does not contain enough pixels to hide all data of " << getFileName(dataFile) << " ." << endl;
-		exit(EXIT_FAILURE);
-	}
-
-	return result;
-}
-
-unsigned char setLastBit(unsigned char byte, int bit) {
-
-	//Create a mask of the original byte with 0xFE (0x11111110 or 254) via bitwise AND
-	int maskedOriginal = (byte & 0xFE);
-
-	//Create modified byte from the previously created mask and the bit that should be set via bitwise OR
-	unsigned char modifiedByte = (maskedOriginal | bit);
-
-	return modifiedByte;
-}
-
-int getLastBit(unsigned char byte) {
-
-	//Read LSB (Least significant bit) via bitwise AND with 0x1 (0x00000001 or 1)
-	int bit = (byte & 0x1);
-
-	return bit;
-}
-
-void writeLengthHeader(long length, unsigned char *pixel) {
-
-	//Create 32 bit bitset to contain header and initialize it with the value of length (how many bytes of data will be hidden in the image)
-	bitset<32> header(length);
-
-	//create reversed index
-	int reversedIndex;
-	
-	for (int i = 0; i < 32; i++) {
-		reversedIndex = 31 - i;
-
-		//Overwrite the byte at position i (0-31) of the decoded subpixel data with a modified byte. 
-		//The LSB of the modified byte is set to the bit value of header[reversedIndex] as the header is written to file starting with the MSB and the bitset starts with the LSB.
-		pixel[i] = setLastBit(pixel[i], header[reversedIndex]);
-	}
-}
-
-int readLengthHeader(unsigned char *pixel) {
-
-	//Create 32 bit bitset to contain the header thats read from file.
-	bitset<32> headerBits;
-
-	//create reversed index
-	int reversedIndex;
-
-	for (int i = 0; i < 32; i++) {
-		reversedIndex = 31 - i;
-
-		//Set the bits of the header to the LSB of the read byte.
-		//The bits are written to the bitset in reverse order as the bits in the bitset start with the LSB and the bits read from file start with MSB.
-		headerBits[reversedIndex] = getLastBit(pixel[i]);
-	}
-
-	//Return the header bitset as int
-	return headerBits.to_ulong();
-}
-
-void writeFilenameHeader(string fileName, unsigned char *pixel) {
-
-	//Create 2048 bit bitset to contain filename header and initialize it with the value of filename.
-	bitset<2048> header(TextToBinaryString(fileName));
-
-	//Create offset to not overwrite length header.
-	const int offset = 32;
-
-	//create reversed index.
-	int reversedIndex;
-	
-	for (int i = 0; i < 2048; i++) {
-		reversedIndex = 2047 - i;
-
-		//Overwrite the byte at position i (32-2079) of the decoded subpixel data with a modified byte. 
-		//The LSB of the modified byte is set to the bit value of header[reversedIndex] as the header is written to file starting with the MSB and the bitset starts with the LSB.
-		pixel[i + offset] = setLastBit(pixel[i + offset], header[reversedIndex]);
-	}
-}
-
-string readFilenameHeader(unsigned char *pixel) {
-
-	//Create 2048 bit bitset to contain the header thats read from file.
-	bitset<2048> headerBits;
-
-	//Create offset to not read length header.
-	const int offset = 32;
-
-	//create reversed index
-	int reversedIndex;
-
-	for (int i = 0; i < 2048; i++) {
-		reversedIndex = 2047 - i;
-
-		//Set the bits of the header to the LSB of the read byte.
-		//The bits are written to the bitset in reverse order as the bits in the bitset start with the LSB and the bits read from file start with MSB.
-		headerBits[reversedIndex] = getLastBit(pixel[i+offset]);
-	}
-
-	//Convert binary to ascii
-	stringstream sstream(headerBits.to_string());
-	string output;
-	while (sstream.good())
-	{
-		bitset<8> bits;
-		sstream >> bits;
-		char c = char(bits.to_ulong());
-		output += c;
-	}
-	//Remove all NUL chars from output
-	output.erase(remove(output.begin(), output.end(), '\0'), output.end());
-
-	//Return the header bitset as int
-	return output;
-}
-
-void hideDataInImage(vector<unsigned char> data, unsigned char *pixel) {
+void hideDataInImage(vector<unsigned char> data, unsigned char* pixel) {
 
 	//Offset in subpixels to not overwrite header data.
 	const int offset = 2080;
@@ -393,7 +341,7 @@ void hideDataInImage(vector<unsigned char> data, unsigned char *pixel) {
 
 }
 
-vector<unsigned char> extractDataFromImage(int length, unsigned char *pixel) {
+vector<unsigned char> extractDataFromImage(int length, unsigned char* pixel) {
 
 	//Offset in subpixels to not read header data.
 	const int offset = 2080;
@@ -423,7 +371,129 @@ vector<unsigned char> extractDataFromImage(int length, unsigned char *pixel) {
 	return data;
 }
 
-#ifndef NOCRYPTOPP
+#pragma endregion
+
+#pragma region BitManipulation
+
+unsigned char setLastBit(unsigned char byte, int bit) {
+
+	//Create a mask of the original byte with 0xFE (0x11111110 or 254) via bitwise AND
+	int maskedOriginal = (byte & 0xFE);
+
+	//Create modified byte from the previously created mask and the bit that should be set via bitwise OR
+	unsigned char modifiedByte = (maskedOriginal | bit);
+
+	return modifiedByte;
+}
+
+int getLastBit(unsigned char byte) {
+
+	//Read LSB (Least significant bit) via bitwise AND with 0x1 (0x00000001 or 1)
+	int bit = (byte & 0x1);
+
+	return bit;
+}
+
+#pragma endregion
+
+#pragma region Metadata
+
+void writeLengthHeader(long length, unsigned char* pixel) {
+
+	//Create 32 bit bitset to contain header and initialize it with the value of length (how many bytes of data will be hidden in the image)
+	bitset<32> header(length);
+
+	//create reversed index
+	int reversedIndex;
+
+	for (int i = 0; i < 32; i++) {
+		reversedIndex = 31 - i;
+
+		//Overwrite the byte at position i (0-31) of the decoded subpixel data with a modified byte. 
+		//The LSB of the modified byte is set to the bit value of header[reversedIndex] as the header is written to file starting with the MSB and the bitset starts with the LSB.
+		pixel[i] = setLastBit(pixel[i], header[reversedIndex]);
+	}
+}
+
+int readLengthHeader(unsigned char* pixel) {
+
+	//Create 32 bit bitset to contain the header thats read from file.
+	bitset<32> headerBits;
+
+	//create reversed index
+	int reversedIndex;
+
+	for (int i = 0; i < 32; i++) {
+		reversedIndex = 31 - i;
+
+		//Set the bits of the header to the LSB of the read byte.
+		//The bits are written to the bitset in reverse order as the bits in the bitset start with the LSB and the bits read from file start with MSB.
+		headerBits[reversedIndex] = getLastBit(pixel[i]);
+	}
+
+	//Return the header bitset as int
+	return headerBits.to_ulong();
+}
+
+void writeFilenameHeader(string fileName, unsigned char* pixel) {
+
+	//Create 2048 bit bitset to contain filename header and initialize it with the value of filename.
+	bitset<2048> header(TextToBinaryString(fileName));
+
+	//Create offset to not overwrite length header.
+	const int offset = 32;
+
+	//create reversed index.
+	int reversedIndex;
+
+	for (int i = 0; i < 2048; i++) {
+		reversedIndex = 2047 - i;
+
+		//Overwrite the byte at position i (32-2079) of the decoded subpixel data with a modified byte. 
+		//The LSB of the modified byte is set to the bit value of header[reversedIndex] as the header is written to file starting with the MSB and the bitset starts with the LSB.
+		pixel[i + offset] = setLastBit(pixel[i + offset], header[reversedIndex]);
+	}
+}
+
+string readFilenameHeader(unsigned char* pixel) {
+
+	//Create 2048 bit bitset to contain the header thats read from file.
+	bitset<2048> headerBits;
+
+	//Create offset to not read length header.
+	const int offset = 32;
+
+	//create reversed index
+	int reversedIndex;
+
+	for (int i = 0; i < 2048; i++) {
+		reversedIndex = 2047 - i;
+
+		//Set the bits of the header to the LSB of the read byte.
+		//The bits are written to the bitset in reverse order as the bits in the bitset start with the LSB and the bits read from file start with MSB.
+		headerBits[reversedIndex] = getLastBit(pixel[i + offset]);
+	}
+
+	//Convert binary to ascii
+	stringstream sstream(headerBits.to_string());
+	string output;
+	while (sstream.good())
+	{
+		bitset<8> bits;
+		sstream >> bits;
+		char c = char(bits.to_ulong());
+		output += c;
+	}
+	//Remove all NUL chars from output
+	output.erase(remove(output.begin(), output.end(), '\0'), output.end());
+
+	//Return the header bitset as int
+	return output;
+}
+
+#pragma endregion
+
+#pragma region Crypto
 
 vector<unsigned char> Encrypt(CryptoPP::byte key[], CryptoPP::byte iv[], vector<unsigned char> data) {
 
@@ -446,7 +516,7 @@ vector<unsigned char> Encrypt(CryptoPP::byte key[], CryptoPP::byte iv[], vector<
 	cipher.resize(data.size() + AES::BLOCKSIZE);
 	ArraySink cs(&cipher[0], cipher.size());
 
-	ArraySource(data.data(), data.size(), true,
+	(void)ArraySource(data.data(), data.size(), true,
 		new StreamTransformationFilter(enc, new Redirector(cs), StreamTransformationFilter::PKCS_PADDING));
 
 	// Set cipher text length now that its known
@@ -476,7 +546,7 @@ vector<unsigned char> Decrypt(CryptoPP::byte key[], CryptoPP::byte iv[], vector<
 	recover.resize(data.size());
 	ArraySink rs(&recover[0], recover.size());
 
-	ArraySource(data.data(), data.size(), true,
+	(void)ArraySource(data.data(), data.size(), true,
 		new StreamTransformationFilter(dec, new Redirector(rs), StreamTransformationFilter::PKCS_PADDING));
 
 	// Set recovered text length now that its known
@@ -488,15 +558,84 @@ vector<unsigned char> Decrypt(CryptoPP::byte key[], CryptoPP::byte iv[], vector<
 CryptoPP::byte* generateSHA256(string data)
 {
 	CryptoPP::byte const* pbData = (CryptoPP::byte*)data.data();
-	unsigned int nDataLen = data.size();
-	CryptoPP::byte abDigest[SHA256::DIGESTSIZE];
+	size_t nDataLen = data.size();
+	CryptoPP::byte* abDigest = new CryptoPP::byte[SHA256::DIGESTSIZE];
 
 	SHA256().CalculateDigest(abDigest, pbData, nDataLen);
 
-	CryptoPP::byte* output = new CryptoPP::byte[SHA256::DIGESTSIZE];
-	memcpy(output, abDigest, SHA256::DIGESTSIZE);
-
-	return output;
+	return abDigest;
 }
 
-#endif // !NOCRYPTOPP
+#pragma endregion
+
+#pragma region Compression
+
+vector<CryptoPP::byte> zlibCompress(vector<CryptoPP::byte> input) {
+	ZlibCompressor zipper;
+	zipper.Put((CryptoPP::byte*)input.data(), input.size());
+	zipper.MessageEnd();
+
+	word64 avail = zipper.MaxRetrievable();
+	if (avail)
+	{
+		vector<CryptoPP::byte> compressed;
+		compressed.resize(avail);
+
+		zipper.Get(&compressed[0], compressed.size());
+		return compressed;
+	}
+	else {
+		cout << "A fatal error has occured during compression." << endl;
+		exit(EXIT_FAILURE);
+	}
+}
+
+vector<CryptoPP::byte> zlibDecompress(vector<CryptoPP::byte> input) {
+	ZlibDecompressor zipper;
+	zipper.Put((CryptoPP::byte*)input.data(), input.size());
+	zipper.MessageEnd();
+
+	word64 avail = zipper.MaxRetrievable();
+	vector<CryptoPP::byte> decompressed;
+	decompressed.resize(avail);
+
+	zipper.Get(&decompressed[0], decompressed.size());
+
+	return decompressed;
+}
+
+#ifdef USEZOPFLI
+vector<CryptoPP::byte> zopfliCompress(vector<CryptoPP::byte> input) {
+	ZopfliOptions options;
+	ZopfliInitOptions(&options);
+
+	if (input.size() > 10000000) {
+		options.blocksplittingmax = 32;
+		options.numiterations = 8;
+	}
+	else if (input.size() > 1000000) {
+		options.blocksplittingmax = 32;
+		options.numiterations = 16;
+	}
+	else {
+		options.blocksplittingmax = 32;
+		options.numiterations = 32;
+	}
+
+
+
+	size_t size = 0;
+	unsigned char* temp;
+
+	ZopfliCompress(&options, ZOPFLI_FORMAT_ZLIB, input.data(), input.size(), &temp, &size);
+
+	vector<unsigned char> output(temp, temp + size);
+	output.shrink_to_fit();
+
+	return output;
+
+}
+#endif // !USEZOPFLI
+
+#pragma endregion
+

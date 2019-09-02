@@ -5,12 +5,7 @@
 #include <fstream>
 using namespace std;
 
-#define NOCRYPTOPP
-
-#ifndef NOCRYPTOPP
 #include "config.h"
-#endif // !NOCRYPTOPP	
-
 #include "lodepng.h"
 
 void decodeOneStep(const char* filename);
@@ -31,7 +26,7 @@ string TextToBinaryString(string words);
 
 void printHelp();
 
-bool validateStorageSpace(char* imageFile, char* dataFile);
+bool validateStorageSpace(char* imageFile, char* dataFile, bool compression);
 
 void writeLengthHeader(long length, unsigned char *pixel);
 
@@ -45,11 +40,14 @@ void hideDataInImage(vector<unsigned char> data, unsigned char* pixel);
 
 vector<unsigned char> extractDataFromImage(int length, unsigned char* pixel);
 
-#ifndef NOCRYPTOPP
 vector<unsigned char> Encrypt(CryptoPP::byte key[], CryptoPP::byte iv[], vector<unsigned char> data);
 
 vector<unsigned char> Decrypt(CryptoPP::byte key[], CryptoPP::byte iv[], vector<unsigned char> data);
 
 CryptoPP::byte* generateSHA256(string data);
 
-#endif // !NOCRYPTOPP
+vector<CryptoPP::byte> zlibCompress(vector<CryptoPP::byte> input);
+
+vector<CryptoPP::byte> zlibDecompress(vector<CryptoPP::byte> input);
+
+vector<CryptoPP::byte> zopfliCompress(vector<CryptoPP::byte> input);
