@@ -28,6 +28,8 @@ void printHelp();
 
 bool validateStorageSpace(char* imageFile, char* dataFile, bool compression);
 
+vector<unsigned int> generateNoise(CryptoPP::byte* seedPointer, size_t dataLength, size_t imageLength);
+
 void writeLengthHeader(long length, unsigned char *pixel);
 
 int readLengthHeader(unsigned char *pixel);
@@ -36,9 +38,13 @@ void writeFilenameHeader(string fileName, unsigned char* pixel);
 
 string readFilenameHeader(unsigned char* pixel);
 
-void hideDataInImage(vector<unsigned char> data, unsigned char* pixel);
+void writeSeedHeader(CryptoPP::byte* seedPointer, unsigned char* pixel);
 
-vector<unsigned char> extractDataFromImage(int length, unsigned char* pixel);
+CryptoPP::byte* readSeedHeader(unsigned char* pixel);
+
+void hideDataInImage(vector<unsigned char> data, CryptoPP::byte* seedPointer, unsigned char* pixel);
+
+vector<unsigned char> extractDataFromImage(int length, CryptoPP::byte* seedPointer, unsigned char* pixel);
 
 vector<unsigned char> Encrypt(CryptoPP::byte key[], CryptoPP::byte iv[], vector<unsigned char> data);
 

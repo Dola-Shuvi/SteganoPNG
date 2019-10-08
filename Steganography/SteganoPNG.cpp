@@ -6,6 +6,9 @@
 #include <fstream>
 #include <sstream>
 #include <filesystem>
+#include <random>
+#include <numeric>
+#include <chrono>
 using namespace std;
 
 //#define USEZOPFLI
@@ -82,10 +85,13 @@ int main(int argc, char** argv) {
 			}
 		}
 
+		CryptoPP::byte* seed = new CryptoPP::byte[SHA256::DIGESTSIZE];
+		memcpy(seed, generateSHA256(to_string(chrono::system_clock::now().time_since_epoch().count())), sizeof(seed));
 
 		writeLengthHeader((unsigned int)dataToHide.size(), pixel);
 		writeFilenameHeader(getFileName(string(argv[3])), pixel);
-		hideDataInImage(dataToHide, pixel);
+		writeSeedHeader(seed, pixel);
+		hideDataInImage(dataToHide, seed, pixel);
 
 		encodeOneStep(argv[2], _image, _width, _height);
 
@@ -111,6 +117,7 @@ int main(int argc, char** argv) {
 
 		int length = readLengthHeader(pixel);
 		string filename = readFilenameHeader(pixel);
+		CryptoPP::byte* seed = readSeedHeader(pixel);
 
 		ofstream src(filename);
 		if (!src) {
@@ -118,8 +125,7 @@ int main(int argc, char** argv) {
 			exit(EXIT_FAILURE);
 		}
 
-
-		vector<unsigned char> extractedData = extractDataFromImage(length, pixel);
+		vector<unsigned char> extractedData = extractDataFromImage(length, seed, pixel);
 
 		if (argc == 5 || argc == 6) {
 			if (strcmp(argv[3], "-p") == 0) {
@@ -245,6 +251,26 @@ bool validateStorageSpace(char* imageFile, char* dataFile, bool compression = tr
 	return result;
 }
 
+vector<unsigned int> generateNoise(CryptoPP::byte* seedPointer, size_t dataLength, size_t imageLength) {
+	CryptoPP::byte seed[SHA256::DIGESTSIZE];
+	memcpy(seed, seedPointer, sizeof(seed));
+
+	seed_seq seed2(begin(seed), end(seed));
+	mt19937 g(seed2);
+
+	vector<unsigned int> noise(imageLength);
+	iota(begin(noise), end(noise), 0);
+
+	unsigned int offset = 2336;
+	noise.erase(noise.begin(), noise.begin() + offset);
+
+	shuffle(begin(noise), end(noise), g);
+
+	noise.resize((size_t)(dataLength * 8U));
+
+	return noise;
+}
+
 #pragma endregion
 
 #pragma region DiskIO
@@ -312,60 +338,55 @@ void writeAllBytes(string fileName, vector<unsigned char> data) {
 
 #pragma region Steganography
 
-void hideDataInImage(vector<unsigned char> data, unsigned char* pixel) {
-
-	//Offset in subpixels to not overwrite header data.
-	const int offset = 2080;
-
-	//Create offset to track progress.
-	int progressOffset;
+void hideDataInImage(vector<unsigned char> data, CryptoPP::byte* seedPointer, unsigned char* pixel) {
 
 	//Create reversed index.
-	int reversedIndex;
+	int64_t reversedIndex;
 
 	//Create 8 bit buffer to store bits of each byte.
 	bitset<8> buffer;
 
+	//Counter to track which subpixel to read next.
+	int progressOffset;
+
+	vector<unsigned int> noise = generateNoise(seedPointer, data.size(), _image.size());
+
 	for (int i = 0; i < (int)data.size(); i++) {
 		buffer = data[i];
 		progressOffset = i * 8;
-
-		for (int ii = 0; ii < 8; ii++) {
+		for (int64_t ii = 0; ii < 8; ii++) {
 			reversedIndex = 7 - ii;
-			pixel[ii + progressOffset + offset] = setLastBit(pixel[ii + progressOffset + offset], buffer[reversedIndex]);
+			pixel[noise.at(ii + progressOffset)] = setLastBit(pixel[noise.at(ii + progressOffset)], buffer[reversedIndex]);
 		}
-
-
-
 	}
 
 }
 
-vector<unsigned char> extractDataFromImage(int length, unsigned char* pixel) {
-
-	//Offset in subpixels to not read header data.
-	const int offset = 2080;
+vector<unsigned char> extractDataFromImage(int length, CryptoPP::byte* seedPointer, unsigned char* pixel) {
 
 	//Initialize vector to hold extracted data.
 	vector<unsigned char> data(length);
 
 	//Create 8 bit bitset to store and convert the read bits.
-	bitset<8> byte;
+	bitset<8> extractedByte;
 
 	//Counter to track which subpixel to read next.
 	int progressOffset;
 
+	vector<unsigned int> noise = generateNoise(seedPointer, data.size(), _image.size());
+
 	//Loop through as many bytes as length tells us to.
 	for (int i = 0; i < length; i++) {
 		progressOffset = i * 8;
+		extractedByte.reset();
 		//For each byte of extracted data loop through 8 subpixels (2 full pixels).
-		for (int ii = 7; ii >= 0; ii--) {
+		for (int64_t ii = 7; ii >= 0; ii--) {
 			//Set the bits of the header to the LSB of the read byte.
 			//The bits are written to the bitset in reverse order as the bits in the bitset start with the LSB and the bits read from file start with MSB.
-			byte[ii] = getLastBit(pixel[7 - ii + offset + progressOffset]);
+			extractedByte[ii] = getLastBit(pixel[noise.at((int64_t)7 - ii + progressOffset)]);
 		}
 
-		data[i] = (unsigned char)byte.to_ulong();
+		data[i] = (unsigned char)extractedByte.to_ulong();
 	}
 
 	return data;
@@ -489,6 +510,73 @@ string readFilenameHeader(unsigned char* pixel) {
 
 	//Return the header bitset as int
 	return output;
+}
+
+void writeSeedHeader(CryptoPP::byte* seedPointer, unsigned char* pixel) {
+
+	CryptoPP::byte* seed = new CryptoPP::byte[SHA256::DIGESTSIZE];
+	memcpy(seed, seedPointer, (size_t)SHA256::DIGESTSIZE);
+
+	//Create 256 bit bitset to contain header and initialize it with the value of length (how many bytes of data will be hidden in the image)
+	bitset<8> seedHeader;
+
+	//create reversed index
+	int reversedIndex;
+
+	//Create offset to not read filename header.
+	const int offset = 2080;
+
+	//Counter to track which subpixel to read next.
+	int progressOffset;
+
+	for (int i = 0; i < 32; i++) {
+		seedHeader = bitset<8>(seed[i]);
+		progressOffset = i * 8;
+		for (int ii = 0; ii < 8; ii++) {
+			reversedIndex = 7 - ii;
+
+			//Overwrite the byte at position i (2080-2336) of the decoded subpixel data with a modified byte. 
+			//The LSB of the modified byte is set to the bit value of seedHeader[reversedIndex] as the header is written to file starting with the MSB and the bitset starts with the LSB.
+			pixel[ii + offset + progressOffset] = setLastBit(pixel[ii + offset + progressOffset], seedHeader[reversedIndex]);
+		}
+
+	}
+
+	
+}
+
+CryptoPP::byte* readSeedHeader(unsigned char* pixel) {
+
+	//Create 8 bit bitset to create a byte.
+	bitset<8> headerByte;
+
+	//create reversed index
+	int reversedIndex;
+
+	//create byte array to store read seed header
+	CryptoPP::byte* seed = new CryptoPP::byte[SHA256::DIGESTSIZE];
+
+	//Create offset to not read filename header.
+	const int offset = 2080;
+
+	//Counter to track which subpixel to read next.
+	int progressOffset;
+
+	for (int i = 0; i < 32; i++) {
+		progressOffset = i * 8;
+		for (int ii = 0; ii < 8; ii++) {
+			reversedIndex = 7 - ii;
+
+			//Set the bits of the header to the LSB of the read byte.
+			//The bits are written to the bitset in reverse order as the bits in the bitset start with the LSB and the bits read from file start with MSB.
+			headerByte[reversedIndex] = getLastBit(pixel[ii + offset + progressOffset]);
+		}
+
+		seed[i] = (unsigned char)headerByte.to_ulong();
+	}
+
+	//Return the header bitset as int
+	return seed;
 }
 
 #pragma endregion
