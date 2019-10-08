@@ -19,6 +19,7 @@ The program can hide all of the data if there is enough space in the image. **Yo
 > *Only PNG files are supported* to obtain maximum storage capacity within the image.
 
 Additionally Crypto++ is used to provide AES256-CBC encryption/decryption and compression/decompression support. Compression/Decompression is enabled by default but can be disabled via the `--no-compression` commandline argument.
+Furthermore the modified data is placed pseudo-randomly within the image to make detection much harder.
 
 Installation
 ------------
