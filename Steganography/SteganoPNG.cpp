@@ -9,7 +9,6 @@
 #include <random>
 #include <numeric>
 #include <chrono>
-using namespace std;
 
 //#define USEZOPFLI
 
@@ -31,7 +30,7 @@ using namespace CryptoPP;
 #endif // USEZOPFLI
 
 
-vector<unsigned char> _image;
+std::vector<unsigned char> _image;
 unsigned int _width;
 unsigned int _height;
 
@@ -42,8 +41,8 @@ int main(int argc, char** argv) {
 	}
 
 	if (strcmp(argv[1], "a") == 0) {
-		if (!(filesystem::exists(argv[2]) && filesystem::exists(argv[3]))) {
-			cout << "One or more specified files do not exist" << endl;
+		if (!(std::filesystem::exists(argv[2]) && std::filesystem::exists(argv[3]))) {
+			std::cout << "One or more specified files do not exist" << std::endl;
 			exit(EXIT_FAILURE);
 		}
 
@@ -59,7 +58,7 @@ int main(int argc, char** argv) {
 
 		validateStorageSpace(argv[2], argv[3], compression);
 
-		vector<unsigned char> dataToHide = readAllBytes(argv[3]);
+		std::vector<unsigned char> dataToHide = readAllBytes(argv[3]);
 
 		if (compression) {
 
@@ -86,10 +85,10 @@ int main(int argc, char** argv) {
 		}
 
 		CryptoPP::byte* seed = new CryptoPP::byte[SHA256::DIGESTSIZE];
-		memcpy(seed, generateSHA256(to_string(chrono::system_clock::now().time_since_epoch().count())), sizeof(seed));
+		memcpy(seed, generateSHA256(std::to_string(std::chrono::system_clock::now().time_since_epoch().count())), sizeof(seed));
 
 		writeLengthHeader((unsigned int)dataToHide.size(), pixel);
-		writeFilenameHeader(getFileName(string(argv[3])), pixel);
+		writeFilenameHeader(getFileName(std::string(argv[3])), pixel);
 		writeSeedHeader(seed, pixel);
 		hideDataInImage(dataToHide, seed, pixel);
 
@@ -99,8 +98,8 @@ int main(int argc, char** argv) {
 	}
 	else if (strcmp(argv[1], "x") == 0){
 
-		if (!filesystem::exists(argv[2])) {
-			cout << "One or more specified files do not exist" << endl;
+		if (!std::filesystem::exists(argv[2])) {
+			std::cout << "One or more specified files do not exist" << std::endl;
 			exit(EXIT_FAILURE);
 		}
 
@@ -116,16 +115,16 @@ int main(int argc, char** argv) {
 		unsigned char* pixel = _image.data();
 
 		int length = readLengthHeader(pixel);
-		string filename = readFilenameHeader(pixel);
+		std::string filename = readFilenameHeader(pixel);
 		CryptoPP::byte* seed = readSeedHeader(pixel);
 
-		ofstream src(filename);
+		std::ofstream src(filename);
 		if (!src) {
-			cout << "This file does not contain a valid filename header. Are you sure it contains hidden data?" << endl;
+			std::cout << "This file does not contain a valid filename header. Are you sure it contains hidden data?" << std::endl;
 			exit(EXIT_FAILURE);
 		}
 
-		vector<unsigned char> extractedData = extractDataFromImage(length, seed, pixel);
+		std::vector<unsigned char> extractedData = extractDataFromImage(length, seed, pixel);
 
 		if (argc == 5 || argc == 6) {
 			if (strcmp(argv[3], "-p") == 0) {
@@ -159,8 +158,8 @@ int main(int argc, char** argv) {
 	}
 	else if (strcmp(argv[1], "t") == 0) {
 
-		if (!(filesystem::exists(argv[2]) && filesystem::exists(argv[3]))){
-			cout << "One or more specified files do not exist" << endl;
+		if (!(std::filesystem::exists(argv[2]) && std::filesystem::exists(argv[3]))){
+			std::cout << "One or more specified files do not exist" << std::endl;
 			exit(EXIT_FAILURE);
 		}
 
@@ -174,7 +173,7 @@ int main(int argc, char** argv) {
 
 		validateStorageSpace(argv[2], argv[3], compression);
 
-		cout << "The file " << getFileName(argv[2]) << " contains enough pixels to hide all data of " << getFileName(argv[2]) << " ." << endl;
+		std::cout << "The file " << getFileName(argv[2]) << " contains enough pixels to hide all data of " << getFileName(argv[2]) << " ." << std::endl;
 		exit(EXIT_SUCCESS);
 	}
 	else {
@@ -187,12 +186,12 @@ int main(int argc, char** argv) {
 
 #pragma region Auxilary
 
-string getFileName(string filename) {
+std::string getFileName(std::string filename) {
 	//Get index of last slash in path.
 	const size_t last_slash_idx = filename.find_last_of("\\/");
 
 	//Check if slash is the last character in the path.
-	if (string::npos != last_slash_idx)
+	if (std::string::npos != last_slash_idx)
 	{
 		//Erase everything before the last slash, including last slash.
 		filename.erase(0, last_slash_idx + 1);
@@ -200,30 +199,30 @@ string getFileName(string filename) {
 	return filename;
 }
 
-string TextToBinaryString(string words) {
-	string binaryString = "";
+std::string TextToBinaryString(std::string words) {
+	std::string binaryString = "";
 
 	//Loop through chars in string, put them in a bitset and return the bitset for each char as a string.
 	for (char& _char : words) {
-		binaryString += bitset<8>(_char).to_string();
+		binaryString += std::bitset<8>(_char).to_string();
 	}
 	return binaryString;
 }
 
 void printHelp() {
 
-	cout << "Syntax: SteganoPNG <command> <image.png> [data.xyz] [-p <password>] [--no-compression]" << endl << endl
+	std::cout << "Syntax: SteganoPNG <command> <image.png> [data.xyz] [-p <password>] [--no-compression]" << std::endl << std::endl
 
-		<< "Commands:" << endl
-		<< "\ta" << "\t" << "Hide provided file in image" << endl
-		<< "\tx" << "\t" << "Extract file hidden in image" << endl
-		<< "\tt" << "\t" << "Verify if the image contains enough pixels for storage" << endl
-		<< "\th" << "\t" << "Show this help screen" << endl << endl
-		<< "Examples:" << endl
-		<< "\tSteganoPNG a image.png FileYouWantToHide.xyz\t to hide \"FileYouWantToHide.xyz\" inside image.png" << endl
-		<< "\tSteganoPNG x image.png\t\t\t\t to extract the file hidden in image.png" << endl
-		<< "\tSteganoPNG t image.png FileYouWantToHide.xyz\t to verify that the image contains enough pixels for storage" << endl << endl
-		<< "Use this software at your OWN risk" << endl
+		<< "Commands:" << std::endl
+		<< "\ta" << "\t" << "Hide provided file in image" << std::endl
+		<< "\tx" << "\t" << "Extract file hidden in image" << std::endl
+		<< "\tt" << "\t" << "Verify if the image contains enough pixels for storage" << std::endl
+		<< "\th" << "\t" << "Show this help screen" << std::endl << std::endl
+		<< "Examples:" << std::endl
+		<< "\tSteganoPNG a image.png FileYouWantToHide.xyz\t to hide \"FileYouWantToHide.xyz\" inside image.png" << std::endl
+		<< "\tSteganoPNG x image.png\t\t\t\t to extract the file hidden in image.png" << std::endl
+		<< "\tSteganoPNG t image.png FileYouWantToHide.xyz\t to verify that the image contains enough pixels for storage" << std::endl << std::endl
+		<< "Use this software at your OWN risk" << std::endl
 		;
 }
 
@@ -231,7 +230,7 @@ bool validateStorageSpace(char* imageFile, char* dataFile, bool compression = tr
 
 	bool result = false;
 
-	vector<unsigned char> data = readAllBytes(dataFile);
+	std::vector<unsigned char> data = readAllBytes(dataFile);
 
 	if (compression) {
 		data = zlibCompress(data);
@@ -244,22 +243,22 @@ bool validateStorageSpace(char* imageFile, char* dataFile, bool compression = tr
 		result = true;
 	}
 	else {
-		cout << "The file " << getFileName(imageFile) << " does not contain enough pixels to hide all data of " << getFileName(dataFile) << " ." << endl;
+		std::cout << "The file " << getFileName(imageFile) << " does not contain enough pixels to hide all data of " << getFileName(dataFile) << " ." << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
 	return result;
 }
 
-vector<unsigned int> generateNoise(CryptoPP::byte* seedPointer, size_t dataLength, size_t imageLength) {
+std::vector<unsigned int> generateNoise(CryptoPP::byte* seedPointer, size_t dataLength, size_t imageLength) {
 	CryptoPP::byte seed[SHA256::DIGESTSIZE];
 	memcpy(seed, seedPointer, sizeof(seed));
 
-	seed_seq seed2(begin(seed), end(seed));
-	mt19937 g(seed2);
+	std::seed_seq seed2(std::begin(seed), std::end(seed));
+	std::mt19937 g(seed2);
 
-	vector<unsigned int> noise(imageLength);
-	iota(begin(noise), end(noise), 0);
+	std::vector<unsigned int> noise(imageLength);
+	std::iota(begin(noise), end(noise), 0);
 
 	unsigned int offset = 2336;
 	noise.erase(noise.begin(), noise.begin() + offset);
@@ -276,7 +275,7 @@ vector<unsigned int> generateNoise(CryptoPP::byte* seedPointer, size_t dataLengt
 #pragma region DiskIO
 
 void decodeOneStep(const char* filename) {
-	vector<unsigned char> image; //the raw pixels
+	std::vector<unsigned char> image; //the raw pixels
 	unsigned width, height;
 
 	//decode
@@ -284,8 +283,8 @@ void decodeOneStep(const char* filename) {
 
 	//if there's an error, display it
 	if (error) {
-		cout << "decoder error " << error << ": " << lodepng_error_text(error) << endl;
-		cout << "The image you provided is corrupted or not supported. Please provide a PNG file." << endl;
+		std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
+		std::cout << "The image you provided is corrupted or not supported. Please provide a PNG file." << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
@@ -295,18 +294,18 @@ void decodeOneStep(const char* filename) {
 	_height = height;
 }
 
-void encodeOneStep(const char* filename, vector<unsigned char>& image, unsigned width, unsigned height) {
+void encodeOneStep(const char* filename, std::vector<unsigned char>& image, unsigned width, unsigned height) {
 	//Encode the image
 	unsigned error = lodepng::encode(filename, image, width, height);
 
 	//if there's an error, display it
-	if (error) cout << "encoder error " << error << ": " << lodepng_error_text(error) << endl;
+	if (error) std::cout << "encoder error " << error << ": " << lodepng_error_text(error) << std::endl;
 }
 
-vector<unsigned char> readAllBytes(string fileName) {
+std::vector<unsigned char> readAllBytes(std::string fileName) {
 	//Open file
-	ifstream infile(fileName, ios::in | ios::binary);
-	vector<unsigned char> buffer;
+	std::ifstream infile(fileName, std::ios::in | std::ios::binary);
+	std::vector<unsigned char> buffer;
 
 	//Get length of file
 	infile.seekg(0, infile.end);
@@ -325,10 +324,10 @@ vector<unsigned char> readAllBytes(string fileName) {
 	return buffer;
 }
 
-void writeAllBytes(string fileName, vector<unsigned char> data) {
+void writeAllBytes(std::string fileName, std::vector<unsigned char> data) {
 
-	ofstream of;
-	of.open(fileName, ios::out | ios::binary);
+	std::ofstream of;
+	of.open(fileName, std::ios::out | std::ios::binary);
 	of.write((char*)& data[0], data.size());
 	of.close();
 
@@ -338,18 +337,18 @@ void writeAllBytes(string fileName, vector<unsigned char> data) {
 
 #pragma region Steganography
 
-void hideDataInImage(vector<unsigned char> data, CryptoPP::byte* seedPointer, unsigned char* pixel) {
+void hideDataInImage(std::vector<unsigned char> data, CryptoPP::byte* seedPointer, unsigned char* pixel) {
 
 	//Create reversed index.
 	int64_t reversedIndex;
 
 	//Create 8 bit buffer to store bits of each byte.
-	bitset<8> buffer;
+	std::bitset<8> buffer;
 
 	//Counter to track which subpixel to read next.
 	int progressOffset;
 
-	vector<unsigned int> noise = generateNoise(seedPointer, data.size(), _image.size());
+	std::vector<unsigned int> noise = generateNoise(seedPointer, data.size(), _image.size());
 
 	for (int i = 0; i < (int)data.size(); i++) {
 		buffer = data[i];
@@ -362,18 +361,18 @@ void hideDataInImage(vector<unsigned char> data, CryptoPP::byte* seedPointer, un
 
 }
 
-vector<unsigned char> extractDataFromImage(int length, CryptoPP::byte* seedPointer, unsigned char* pixel) {
+std::vector<unsigned char> extractDataFromImage(int length, CryptoPP::byte* seedPointer, unsigned char* pixel) {
 
 	//Initialize vector to hold extracted data.
-	vector<unsigned char> data(length);
+	std::vector<unsigned char> data(length);
 
 	//Create 8 bit bitset to store and convert the read bits.
-	bitset<8> extractedByte;
+	std::bitset<8> extractedByte;
 
 	//Counter to track which subpixel to read next.
 	int progressOffset;
 
-	vector<unsigned int> noise = generateNoise(seedPointer, data.size(), _image.size());
+	std::vector<unsigned int> noise = generateNoise(seedPointer, data.size(), _image.size());
 
 	//Loop through as many bytes as length tells us to.
 	for (int i = 0; i < length; i++) {
@@ -422,7 +421,7 @@ int getLastBit(unsigned char byte) {
 void writeLengthHeader(long length, unsigned char* pixel) {
 
 	//Create 32 bit bitset to contain header and initialize it with the value of length (how many bytes of data will be hidden in the image)
-	bitset<32> header(length);
+	std::bitset<32> header(length);
 
 	//create reversed index
 	int reversedIndex;
@@ -439,7 +438,7 @@ void writeLengthHeader(long length, unsigned char* pixel) {
 int readLengthHeader(unsigned char* pixel) {
 
 	//Create 32 bit bitset to contain the header thats read from file.
-	bitset<32> headerBits;
+	std::bitset<32> headerBits;
 
 	//create reversed index
 	int reversedIndex;
@@ -456,10 +455,10 @@ int readLengthHeader(unsigned char* pixel) {
 	return headerBits.to_ulong();
 }
 
-void writeFilenameHeader(string fileName, unsigned char* pixel) {
+void writeFilenameHeader(std::string fileName, unsigned char* pixel) {
 
 	//Create 2048 bit bitset to contain filename header and initialize it with the value of filename.
-	bitset<2048> header(TextToBinaryString(fileName));
+	std::bitset<2048> header(TextToBinaryString(fileName));
 
 	//Create offset to not overwrite length header.
 	const int offset = 32;
@@ -476,10 +475,10 @@ void writeFilenameHeader(string fileName, unsigned char* pixel) {
 	}
 }
 
-string readFilenameHeader(unsigned char* pixel) {
+std::string readFilenameHeader(unsigned char* pixel) {
 
 	//Create 2048 bit bitset to contain the header thats read from file.
-	bitset<2048> headerBits;
+	std::bitset<2048> headerBits;
 
 	//Create offset to not read length header.
 	const int offset = 32;
@@ -496,11 +495,11 @@ string readFilenameHeader(unsigned char* pixel) {
 	}
 
 	//Convert binary to ascii
-	stringstream sstream(headerBits.to_string());
-	string output;
+	std::stringstream sstream(headerBits.to_string());
+	std::string output;
 	while (sstream.good())
 	{
-		bitset<8> bits;
+		std::bitset<8> bits;
 		sstream >> bits;
 		char c = char(bits.to_ulong());
 		output += c;
@@ -518,7 +517,7 @@ void writeSeedHeader(CryptoPP::byte* seedPointer, unsigned char* pixel) {
 	memcpy(seed, seedPointer, (size_t)SHA256::DIGESTSIZE);
 
 	//Create 256 bit bitset to contain header and initialize it with the value of length (how many bytes of data will be hidden in the image)
-	bitset<8> seedHeader;
+	std::bitset<8> seedHeader;
 
 	//create reversed index
 	int reversedIndex;
@@ -530,7 +529,7 @@ void writeSeedHeader(CryptoPP::byte* seedPointer, unsigned char* pixel) {
 	int progressOffset;
 
 	for (int i = 0; i < 32; i++) {
-		seedHeader = bitset<8>(seed[i]);
+		seedHeader = std::bitset<8>(seed[i]);
 		progressOffset = i * 8;
 		for (int ii = 0; ii < 8; ii++) {
 			reversedIndex = 7 - ii;
@@ -548,7 +547,7 @@ void writeSeedHeader(CryptoPP::byte* seedPointer, unsigned char* pixel) {
 CryptoPP::byte* readSeedHeader(unsigned char* pixel) {
 
 	//Create 8 bit bitset to create a byte.
-	bitset<8> headerByte;
+	std::bitset<8> headerByte;
 
 	//create reversed index
 	int reversedIndex;
@@ -583,7 +582,7 @@ CryptoPP::byte* readSeedHeader(unsigned char* pixel) {
 
 #pragma region Crypto
 
-vector<unsigned char> Encrypt(CryptoPP::byte key[], CryptoPP::byte iv[], vector<unsigned char> data) {
+std::vector<unsigned char> Encrypt(CryptoPP::byte key[], CryptoPP::byte iv[], std::vector<unsigned char> data) {
 
 	CryptoPP::byte keycopy[AES::MAX_KEYLENGTH];
 	memcpy(keycopy, key, sizeof(keycopy));
@@ -598,7 +597,7 @@ vector<unsigned char> Encrypt(CryptoPP::byte key[], CryptoPP::byte iv[], vector<
 	memset(keycopy, 0x00, sizeof(keycopy));
 	memset(ivcopy, 0x00, sizeof(ivcopy));
 
-	vector<unsigned char> cipher;
+	std::vector<unsigned char> cipher;
 
 	// Make room for padding
 	cipher.resize(data.size() + AES::BLOCKSIZE);
@@ -613,7 +612,7 @@ vector<unsigned char> Encrypt(CryptoPP::byte key[], CryptoPP::byte iv[], vector<
 	return cipher;
 }
 
-vector<unsigned char> Decrypt(CryptoPP::byte key[], CryptoPP::byte iv[], vector<unsigned char> data) {
+std::vector<unsigned char> Decrypt(CryptoPP::byte key[], CryptoPP::byte iv[], std::vector<unsigned char> data) {
 
 	CryptoPP::byte keycopy[AES::MAX_KEYLENGTH];
 	memcpy(keycopy, key, sizeof(keycopy));
@@ -628,7 +627,7 @@ vector<unsigned char> Decrypt(CryptoPP::byte key[], CryptoPP::byte iv[], vector<
 	memset(keycopy, 0x00, sizeof(keycopy));
 	memset(ivcopy, 0x00, sizeof(ivcopy));
 
-	vector<unsigned char> recover;
+	std::vector<unsigned char> recover;
 
 	// Recovered text will be less than cipher text
 	recover.resize(data.size());
@@ -643,7 +642,7 @@ vector<unsigned char> Decrypt(CryptoPP::byte key[], CryptoPP::byte iv[], vector<
 	return recover;
 }
 
-CryptoPP::byte* generateSHA256(string data)
+CryptoPP::byte* generateSHA256(std::string data)
 {
 	CryptoPP::byte const* pbData = (CryptoPP::byte*)data.data();
 	size_t nDataLen = data.size();
@@ -658,7 +657,7 @@ CryptoPP::byte* generateSHA256(string data)
 
 #pragma region Compression
 
-vector<CryptoPP::byte> zlibCompress(vector<CryptoPP::byte> input) {
+std::vector<CryptoPP::byte> zlibCompress(std::vector<CryptoPP::byte> input) {
 	ZlibCompressor zipper;
 	zipper.Put((CryptoPP::byte*)input.data(), input.size());
 	zipper.MessageEnd();
@@ -666,25 +665,25 @@ vector<CryptoPP::byte> zlibCompress(vector<CryptoPP::byte> input) {
 	word64 avail = zipper.MaxRetrievable();
 	if (avail)
 	{
-		vector<CryptoPP::byte> compressed;
+		std::vector<CryptoPP::byte> compressed;
 		compressed.resize(avail);
 
 		zipper.Get(&compressed[0], compressed.size());
 		return compressed;
 	}
 	else {
-		cout << "A fatal error has occured during compression." << endl;
+		std::cout << "A fatal error has occured during compression." << std::endl;
 		exit(EXIT_FAILURE);
 	}
 }
 
-vector<CryptoPP::byte> zlibDecompress(vector<CryptoPP::byte> input) {
+std::vector<CryptoPP::byte> zlibDecompress(std::vector<CryptoPP::byte> input) {
 	ZlibDecompressor zipper;
 	zipper.Put((CryptoPP::byte*)input.data(), input.size());
 	zipper.MessageEnd();
 
 	word64 avail = zipper.MaxRetrievable();
-	vector<CryptoPP::byte> decompressed;
+	std::vector<CryptoPP::byte> decompressed;
 	decompressed.resize(avail);
 
 	zipper.Get(&decompressed[0], decompressed.size());
@@ -693,7 +692,7 @@ vector<CryptoPP::byte> zlibDecompress(vector<CryptoPP::byte> input) {
 }
 
 #ifdef USEZOPFLI
-vector<CryptoPP::byte> zopfliCompress(vector<CryptoPP::byte> input) {
+std::vector<CryptoPP::byte> zopfliCompress(std::vector<CryptoPP::byte> input) {
 	ZopfliOptions options;
 	ZopfliInitOptions(&options);
 
@@ -717,7 +716,7 @@ vector<CryptoPP::byte> zopfliCompress(vector<CryptoPP::byte> input) {
 
 	ZopfliCompress(&options, ZOPFLI_FORMAT_ZLIB, input.data(), input.size(), &temp, &size);
 
-	vector<unsigned char> output(temp, temp + size);
+	std::vector<unsigned char> output(temp, temp + size);
 	output.shrink_to_fit();
 
 	return output;
