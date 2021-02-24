@@ -521,70 +521,102 @@ namespace UnitTest
 		}
 		TEST_METHOD(ValidateConfiguration09)
 		{
+			string testfile = std::string(TEST_CASE_DIRECTORY) + "ConfigurationTest09.txt";
+			string imagefile = std::string(TEST_CASE_DIRECTORY) + "ConfigurationTest09.png";
+
+			std::vector<unsigned char> plain_vector = InitializeTestFiles(testfile, imagefile);
+
 			int argumentCount = 4;
-			char* argumentValues[] = { "", "t", "image.png", "data.xyz" };
+			char* argumentValues[] = { "", "t", (char*)imagefile.c_str(), (char*)testfile.c_str() };
 
 			ConfigurationManager config= ConfigurationManager(argumentCount, argumentValues);
 
 			Assert::AreEqual((int)ConfigurationManager::Mode::TEST, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
-			Assert::AreEqual(std::string("image.png"), std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
-			Assert::AreEqual(std::string("data.xyz"), std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
+			Assert::AreEqual(imagefile, std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
+			Assert::AreEqual(testfile, std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
 			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
 			Assert::AreEqual(std::string(""), std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
 			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
 
 			Assert::IsTrue(ValidateStorageSpace(config));
+
+			remove(imagefile.c_str());
+			remove(testfile.c_str());
 
 		}
 		TEST_METHOD(ValidateConfiguration10)
 		{
+			string testfile = std::string(TEST_CASE_DIRECTORY) + "ConfigurationTest10.txt";
+			string imagefile = std::string(TEST_CASE_DIRECTORY) + "ConfigurationTest10.png";
+
+			std::vector<unsigned char> plain_vector = InitializeTestFiles(testfile, imagefile);
+
 			int argumentCount = 6;
-			char* argumentValues[] = { "", "t", "image.png", "data.xyz", "-p", "Test" };
+			char* argumentValues[] = { "", "t", (char*)imagefile.c_str(), (char*)testfile.c_str(), "-p", "Test" };
 
 			ConfigurationManager config= ConfigurationManager(argumentCount, argumentValues);
 
 			Assert::AreEqual((int)ConfigurationManager::Mode::TEST, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
-			Assert::AreEqual(std::string("image.png"), std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
-			Assert::AreEqual(std::string("data.xyz"), std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
+			Assert::AreEqual(imagefile, std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
+			Assert::AreEqual(testfile, std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
 			Assert::AreEqual(true, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
 			Assert::AreEqual(std::string("Test"), std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
 			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
 
 			Assert::IsTrue(ValidateStorageSpace(config));
 
+			remove(imagefile.c_str());
+			remove(testfile.c_str());
+
 		}
 		TEST_METHOD(ValidateConfiguration11)
 		{
+			string testfile = std::string(TEST_CASE_DIRECTORY) + "ConfigurationTest11.txt";
+			string imagefile = std::string(TEST_CASE_DIRECTORY) + "ConfigurationTest11.png";
+
+			std::vector<unsigned char> plain_vector = InitializeTestFiles(testfile, imagefile);
+
 			int argumentCount = 5;
-			char* argumentValues[] = { "", "t", "image.png", "data.xyz", "--no-compression" };
+			char* argumentValues[] = { "", "t", (char*)imagefile.c_str(), (char*)testfile.c_str(), "--no-compression" };
 
 			ConfigurationManager config= ConfigurationManager(argumentCount, argumentValues);
 
 			Assert::AreEqual((int)ConfigurationManager::Mode::TEST, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
-			Assert::AreEqual(std::string("image.png"), std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
-			Assert::AreEqual(std::string("data.xyz"), std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
+			Assert::AreEqual(imagefile, std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
+			Assert::AreEqual(testfile, std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
 			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
 			Assert::AreEqual(std::string(""), std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
 			Assert::AreEqual(true, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
 
 			Assert::IsTrue(ValidateStorageSpace(config));
 
+			remove(imagefile.c_str());
+			remove(testfile.c_str());
+
 		}
 		TEST_METHOD(ValidateConfiguration12)
 		{
+			string testfile = std::string(TEST_CASE_DIRECTORY) + "ConfigurationTest12.txt";
+			string imagefile = std::string(TEST_CASE_DIRECTORY) + "ConfigurationTest12.png";
+
+			std::vector<unsigned char> plain_vector = InitializeTestFiles(testfile, imagefile);
+
 			int argumentCount = 7;
-			char* argumentValues[] = { "", "t", "image.png", "data.xyz", "-p", "Test", "--no-compression" };
+			char* argumentValues[] = { "", "t", (char*)imagefile.c_str(), (char*)testfile.c_str(), "-p", "Test", "--no-compression" };
 
 			ConfigurationManager config = ConfigurationManager(argumentCount, argumentValues);
 
 			Assert::AreEqual((int)ConfigurationManager::Mode::TEST, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
-			Assert::AreEqual(std::string("image.png"), std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
-			Assert::AreEqual(std::string("data.xyz"), std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
+			Assert::AreEqual(imagefile, std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
+			Assert::AreEqual(testfile, std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
 			Assert::AreEqual(true, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
 			Assert::AreEqual(std::string("Test"), std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
 			Assert::AreEqual(true, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
 
 			Assert::IsTrue(ValidateStorageSpace(config));
+
+			remove(imagefile.c_str());
+			remove(testfile.c_str());
 
 		}
 		TEST_METHOD(ValidateConfiguration13)
