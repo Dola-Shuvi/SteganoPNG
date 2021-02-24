@@ -6,3 +6,6 @@
 	path = Steganography/zopfli
 	url = https://github.com/google/zopfli.git
 	ignore = untracked
+[submodule "Steganography\\LodePNG"]
+	path = Steganography\\LodePNG
+	url = https://github.com/lvandeve/lodepng.git
