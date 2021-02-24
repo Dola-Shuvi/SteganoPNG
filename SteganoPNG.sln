@@ -10,6 +10,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SteganoPNG", "Steganography
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cryptlib", "Steganography\CryptoPP\cryptlib.vcxproj", "{C39F4B46-6E89-4074-902E-CA57073044D2}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UnitTest", "UnitTest\UnitTest.vcxproj", "{517F7A2E-C6ED-479C-B005-2F09903E5670}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -54,6 +56,20 @@ Global
 		{C39F4B46-6E89-4074-902E-CA57073044D2}.Release-Zopfli|x64.Build.0 = Release|x64
 		{C39F4B46-6E89-4074-902E-CA57073044D2}.Release-Zopfli|x86.ActiveCfg = Release|Win32
 		{C39F4B46-6E89-4074-902E-CA57073044D2}.Release-Zopfli|x86.Build.0 = Release|Win32
+		{517F7A2E-C6ED-479C-B005-2F09903E5670}.Debug|x64.ActiveCfg = Debug|x64
+		{517F7A2E-C6ED-479C-B005-2F09903E5670}.Debug|x64.Build.0 = Debug|x64
+		{517F7A2E-C6ED-479C-B005-2F09903E5670}.Debug|x86.ActiveCfg = Debug|Win32
+		{517F7A2E-C6ED-479C-B005-2F09903E5670}.Debug|x86.Build.0 = Debug|Win32
+		{517F7A2E-C6ED-479C-B005-2F09903E5670}.Debug-Zopfli|x64.ActiveCfg = Debug|x64
+		{517F7A2E-C6ED-479C-B005-2F09903E5670}.Debug-Zopfli|x64.Build.0 = Debug|x64
+		{517F7A2E-C6ED-479C-B005-2F09903E5670}.Debug-Zopfli|x86.ActiveCfg = Debug|Win32
+		{517F7A2E-C6ED-479C-B005-2F09903E5670}.Debug-Zopfli|x86.Build.0 = Debug|Win32
+		{517F7A2E-C6ED-479C-B005-2F09903E5670}.Release|x64.ActiveCfg = Release|x64
+		{517F7A2E-C6ED-479C-B005-2F09903E5670}.Release|x64.Build.0 = Release|x64
+		{517F7A2E-C6ED-479C-B005-2F09903E5670}.Release|x86.ActiveCfg = Release|x64
+		{517F7A2E-C6ED-479C-B005-2F09903E5670}.Release-Zopfli|x64.ActiveCfg = Debug|x64
+		{517F7A2E-C6ED-479C-B005-2F09903E5670}.Release-Zopfli|x64.Build.0 = Debug|x64
+		{517F7A2E-C6ED-479C-B005-2F09903E5670}.Release-Zopfli|x86.ActiveCfg = Debug|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
