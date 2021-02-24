@@ -6,18 +6,14 @@ ZOPFLI=
 
 all: install
 
-install: lodepng cryptopp zopfli
+install: cryptopp zopfli
 	cd Steganography; \
 	$(CXX) $(CXXFLAGS) SteganoPNG.cpp LodePNG/lodepng.cpp $(LDLIBS) $(ZOPFLI); \
 	strip SteganoPNG; \
 	cd ..; \
 	mkdir -p build; \
 	mv Steganography/SteganoPNG build/SteganoPNG
-	
-lodepng:
-	cd Steganography/LodePNG; \
-	wget -q -N https://raw.githubusercontent.com/lvandeve/lodepng/master/lodepng.h https://raw.githubusercontent.com/lvandeve/lodepng/master/lodepng.cpp
-	
+
 zopfli:
 ifneq (,$(wildcard ./Steganography/zopfli/libzopfli.a))
 ZOPFLI := -l:libzopfli.a
