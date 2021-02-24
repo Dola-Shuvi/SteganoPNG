@@ -24,6 +24,9 @@
     <ClCompile Include="LodePNG\lodepng.cpp">
       <Filter>LodePNG</Filter>
     </ClCompile>
+    <ClCompile Include="ConfigurationManager.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SteganoPNG.h">
@@ -31,6 +34,9 @@
     </ClInclude>
     <ClInclude Include="LodePNG\lodepng.h">
       <Filter>LodePNG</Filter>
+    </ClInclude>
+    <ClInclude Include="ConfigurationManager.h">
+      <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

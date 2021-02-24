@@ -352,10 +352,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ConfigurationManager.cpp" />
     <ClCompile Include="LodePNG\lodepng.cpp" />
     <ClCompile Include="SteganoPNG.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ConfigurationManager.h" />
     <ClInclude Include="LodePNG\lodepng.h" />
     <ClInclude Include="SteganoPNG.h" />
   </ItemGroup>
