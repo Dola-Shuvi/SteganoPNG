@@ -7,52 +7,56 @@
 #include "config.h"
 #include "lodepng.h"
 
-void decodeOneStep(const char* filename);
+namespace SteganoPNG {
 
-void encodeOneStep(const char* filename, std::vector<unsigned char>& image, unsigned width, unsigned height);
+	void decodeOneStep(const char* filename);
 
-unsigned char setLastBit(unsigned char byte, int bit);
+	void encodeOneStep(const char* filename, std::vector<unsigned char>& image, unsigned width, unsigned height);
 
-int getLastBit(unsigned char byte);
+	unsigned char setLastBit(unsigned char byte, int bit);
 
-std::vector<unsigned char> readAllBytes(std::string fileName);
+	int getLastBit(unsigned char byte);
 
-void writeAllBytes(std::string fileName, std::vector<unsigned char> data);
+	std::vector<unsigned char> readAllBytes(std::string fileName);
 
-std::string getFileName(std::string filename);
+	void writeAllBytes(std::string fileName, std::vector<unsigned char> data);
 
-std::string TextToBinaryString(std::string words);
+	std::string getFileName(std::string filename);
 
-void printHelp();
+	std::string TextToBinaryString(std::string words);
 
-bool validateStorageSpace(char* imageFile, char* dataFile, bool compression);
+	void printHelp();
 
-std::vector<unsigned int> generateNoise(CryptoPP::byte* seedPointer, size_t dataLength, size_t imageLength);
+	bool validateStorageSpace(char* imageFile, char* dataFile, bool compression);
 
-void writeLengthHeader(long length, unsigned char *pixel);
+	std::vector<unsigned int> generateNoise(CryptoPP::byte* seedPointer, size_t dataLength, size_t imageLength);
 
-int readLengthHeader(unsigned char *pixel);
+	void writeLengthHeader(long length, unsigned char* pixel);
 
-void writeFilenameHeader(std::string fileName, unsigned char* pixel);
+	int readLengthHeader(unsigned char* pixel);
 
-std::string readFilenameHeader(unsigned char* pixel);
+	void writeFilenameHeader(std::string fileName, unsigned char* pixel);
 
-void writeSeedHeader(CryptoPP::byte* seedPointer, unsigned char* pixel);
+	std::string readFilenameHeader(unsigned char* pixel);
 
-CryptoPP::byte* readSeedHeader(unsigned char* pixel);
+	void writeSeedHeader(CryptoPP::byte* seedPointer, unsigned char* pixel);
 
-void hideDataInImage(std::vector<unsigned char> data, CryptoPP::byte* seedPointer, unsigned char* pixel);
+	CryptoPP::byte* readSeedHeader(unsigned char* pixel);
 
-std::vector<unsigned char> extractDataFromImage(int length, CryptoPP::byte* seedPointer, unsigned char* pixel);
+	void hideDataInImage(std::vector<unsigned char> data, CryptoPP::byte* seedPointer, unsigned char* pixel);
 
-std::vector<unsigned char> Encrypt(CryptoPP::byte key[], CryptoPP::byte iv[], std::vector<unsigned char> data);
+	std::vector<unsigned char> extractDataFromImage(int length, CryptoPP::byte* seedPointer, unsigned char* pixel);
 
-std::vector<unsigned char> Decrypt(CryptoPP::byte key[], CryptoPP::byte iv[], std::vector<unsigned char> data);
+	std::vector<unsigned char> Encrypt(CryptoPP::byte key[], CryptoPP::byte iv[], std::vector<unsigned char> data);
 
-CryptoPP::byte* generateSHA256(std::string data);
+	std::vector<unsigned char> Decrypt(CryptoPP::byte key[], CryptoPP::byte iv[], std::vector<unsigned char> data);
 
-std::vector<CryptoPP::byte> zlibCompress(std::vector<CryptoPP::byte> input);
+	CryptoPP::byte* generateSHA256(std::string data);
 
-std::vector<CryptoPP::byte> zlibDecompress(std::vector<CryptoPP::byte> input);
+	std::vector<CryptoPP::byte> zlibCompress(std::vector<CryptoPP::byte> input);
 
-std::vector<CryptoPP::byte> zopfliCompress(std::vector<CryptoPP::byte> input);
+	std::vector<CryptoPP::byte> zlibDecompress(std::vector<CryptoPP::byte> input);
+
+	std::vector<CryptoPP::byte> zopfliCompress(std::vector<CryptoPP::byte> input);
+
+}
