@@ -5,11 +5,11 @@
 #include <fstream>
 
 #include "config.h"
-#include "lodepng.h"
+#include <lodepng.h>
 
 namespace SteganoPNG {
 
-	void decodeOneStep(const char* filename);
+	void decodeOneStep(const char* filename, std::vector<unsigned char>* _image, unsigned int* _width, unsigned int* _height);
 
 	void encodeOneStep(const char* filename, std::vector<unsigned char>& image, unsigned width, unsigned height);
 
@@ -27,7 +27,7 @@ namespace SteganoPNG {
 
 	void printHelp();
 
-	bool validateStorageSpace(char* imageFile, char* dataFile, bool compression);
+	bool validateStorageSpace(char* imageFile, char* dataFile, unsigned int _width, unsigned int _height, bool compression);
 
 	std::vector<unsigned int> generateNoise(CryptoPP::byte* seedPointer, size_t dataLength, size_t imageLength);
 
@@ -43,9 +43,9 @@ namespace SteganoPNG {
 
 	CryptoPP::byte* readSeedHeader(unsigned char* pixel);
 
-	void hideDataInImage(std::vector<unsigned char> data, CryptoPP::byte* seedPointer, unsigned char* pixel);
+	void hideDataInImage(std::vector<unsigned char> data, CryptoPP::byte* seedPointer, unsigned char* pixel, std::vector<unsigned char> _image);
 
-	std::vector<unsigned char> extractDataFromImage(int length, CryptoPP::byte* seedPointer, unsigned char* pixel);
+	std::vector<unsigned char> extractDataFromImage(int length, CryptoPP::byte* seedPointer, unsigned char* pixel, std::vector<unsigned char> _image);
 
 	std::vector<unsigned char> Encrypt(CryptoPP::byte key[], CryptoPP::byte iv[], std::vector<unsigned char> data);
 

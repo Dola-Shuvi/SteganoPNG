@@ -29,16 +29,15 @@ using namespace CryptoPP;
 #include "zopfli.h"
 #endif // USEZOPFLI
 
-
-std::vector<unsigned char> _image;
-unsigned int _width;
-unsigned int _height;
-
 int main(int argc, char** argv) {
 	if (((argc != 3 && argc != 4 && argc != 5 && argc != 6 && argc != 7) || (strcmp(argv[1], "h") == 0) || (strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
 		SteganoPNG::printHelp();
 		exit(EXIT_SUCCESS);
 	}
+
+	std::vector<unsigned char> _image;
+	unsigned int _width;
+	unsigned int _height;
 
 	if (strcmp(argv[1], "a") == 0) {
 		if (!(std::filesystem::exists(argv[2]) && std::filesystem::exists(argv[3]))) {
@@ -46,7 +45,7 @@ int main(int argc, char** argv) {
 			exit(EXIT_FAILURE);
 		}
 
-		SteganoPNG::decodeOneStep(argv[2]);
+		SteganoPNG::decodeOneStep(argv[2], &_image, &_width, &_height);
 
 		bool compression = true;
 		if (argc > 4) {
@@ -56,7 +55,7 @@ int main(int argc, char** argv) {
 			if (strcmp(argv[6], "--no-compression") == 0) compression = false;
 		}
 
-		SteganoPNG::validateStorageSpace(argv[2], argv[3], compression);
+		SteganoPNG::validateStorageSpace(argv[2], argv[3], _width, _height, compression);
 
 		std::vector<unsigned char> dataToHide = SteganoPNG::readAllBytes(argv[3]);
 
@@ -90,7 +89,7 @@ int main(int argc, char** argv) {
 		SteganoPNG::writeLengthHeader((unsigned int)dataToHide.size(), pixel);
 		SteganoPNG::writeFilenameHeader(SteganoPNG::getFileName(std::string(argv[3])), pixel);
 		SteganoPNG::writeSeedHeader(seed, pixel);
-		SteganoPNG::hideDataInImage(dataToHide, seed, pixel);
+		SteganoPNG::hideDataInImage(dataToHide, seed, pixel, _image);
 
 		SteganoPNG::encodeOneStep(argv[2], _image, _width, _height);
 
@@ -111,7 +110,7 @@ int main(int argc, char** argv) {
 			if (strcmp(argv[5], "--no-compression") == 0) compression = false;
 		}
 
-		SteganoPNG::decodeOneStep(argv[2]);
+		SteganoPNG::decodeOneStep(argv[2], &_image, &_width, &_height);
 		unsigned char* pixel = _image.data();
 
 		int length = SteganoPNG::readLengthHeader(pixel);
@@ -124,7 +123,7 @@ int main(int argc, char** argv) {
 			exit(EXIT_FAILURE);
 		}
 
-		std::vector<unsigned char> extractedData = SteganoPNG::extractDataFromImage(length, seed, pixel);
+		std::vector<unsigned char> extractedData = SteganoPNG::extractDataFromImage(length, seed, pixel, _image);
 
 		if (argc == 5 || argc == 6) {
 			if (strcmp(argv[3], "-p") == 0) {
@@ -163,7 +162,7 @@ int main(int argc, char** argv) {
 			exit(EXIT_FAILURE);
 		}
 
-		SteganoPNG::decodeOneStep(argv[2]);
+		SteganoPNG::decodeOneStep(argv[2], &_image, &_width, &_height);
 
 		bool compression = true;
 		if (argc > 4) {
@@ -171,7 +170,7 @@ int main(int argc, char** argv) {
 		}
 		
 
-		SteganoPNG::validateStorageSpace(argv[2], argv[3], compression);
+		SteganoPNG::validateStorageSpace(argv[2], argv[3], _width, _height, compression);
 
 		std::cout << "The file " << SteganoPNG::getFileName(argv[2]) << " contains enough pixels to hide all data of " << SteganoPNG::getFileName(argv[2]) << " ." << std::endl;
 		exit(EXIT_SUCCESS);
@@ -226,14 +225,20 @@ void SteganoPNG::printHelp() {
 		;
 }
 
-bool SteganoPNG::validateStorageSpace(char* imageFile, char* dataFile, bool compression = true) {
+bool SteganoPNG::validateStorageSpace(char* imageFile, char* dataFile, unsigned int _width, unsigned int _height, bool compression = true) {
 
 	bool result = false;
 
 	std::vector<unsigned char> data = SteganoPNG::readAllBytes(dataFile);
 
 	if (compression) {
-		data = zlibCompress(data);
+#ifndef USEZOPFLI
+		data = SteganoPNG::zlibCompress(data);
+#else
+		data = SteganoPNG::zopfliCompress(data);
+#endif // !USEZOPFLI
+
+		
 		data.shrink_to_fit();
 	}
 
@@ -274,7 +279,7 @@ std::vector<unsigned int> SteganoPNG::generateNoise(CryptoPP::byte* seedPointer,
 
 #pragma region DiskIO
 
-void SteganoPNG::decodeOneStep(const char* filename) {
+void SteganoPNG::decodeOneStep(const char* filename, std::vector<unsigned char> *_image, unsigned int *_width, unsigned int *_height) {
 	std::vector<unsigned char> image; //the raw pixels
 	unsigned width, height;
 
@@ -289,9 +294,9 @@ void SteganoPNG::decodeOneStep(const char* filename) {
 	}
 
 	//the pixels are now in the vector "image", 4 bytes per pixel, ordered RGBARGBA..., use it as texture, draw it, ...
-	_image = image;
-	_width = width;
-	_height = height;
+	*_image = image;
+	*_width = width;
+	*_height = height;
 }
 
 void SteganoPNG::encodeOneStep(const char* filename, std::vector<unsigned char>& image, unsigned width, unsigned height) {
@@ -337,7 +342,7 @@ void SteganoPNG::writeAllBytes(std::string fileName, std::vector<unsigned char> 
 
 #pragma region Steganography
 
-void SteganoPNG::hideDataInImage(std::vector<unsigned char> data, CryptoPP::byte* seedPointer, unsigned char* pixel) {
+void SteganoPNG::hideDataInImage(std::vector<unsigned char> data, CryptoPP::byte* seedPointer, unsigned char* pixel, std::vector<unsigned char> _image) {
 
 	//Create reversed index.
 	int64_t reversedIndex;
@@ -361,7 +366,7 @@ void SteganoPNG::hideDataInImage(std::vector<unsigned char> data, CryptoPP::byte
 
 }
 
-std::vector<unsigned char> SteganoPNG::extractDataFromImage(int length, CryptoPP::byte* seedPointer, unsigned char* pixel) {
+std::vector<unsigned char> SteganoPNG::extractDataFromImage(int length, CryptoPP::byte* seedPointer, unsigned char* pixel, std::vector<unsigned char> _image) {
 
 	//Initialize vector to hold extracted data.
 	std::vector<unsigned char> data(length);
