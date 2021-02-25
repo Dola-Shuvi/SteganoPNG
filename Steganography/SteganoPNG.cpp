@@ -22,115 +22,104 @@
 #include "zlib.h"
 using namespace CryptoPP;
 
-#include "SteganoPNG.h"
 #include "lodepng.h"
+
+#include "SteganoPNG.h"
+#include "ConfigurationManager.h"
+
 
 #ifdef USEZOPFLI
 #include "zopfli.h"
 #endif // USEZOPFLI
 
-int main(int argc, char** argv) {
-	if (((argc != 3 && argc != 4 && argc != 5 && argc != 6 && argc != 7) || (strcmp(argv[1], "h") == 0) || (strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0))) {
-		SteganoPNG::printHelp();
-		exit(EXIT_SUCCESS);
-	}
+int main(int argc, char* argv[]) {
+
+	ConfigurationManager config = ConfigurationManager(argc, argv);
+
+	ConfigurationManager::Mode mode = std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode));
+	std::string imagePath = std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath));
+	std::string dataPath = std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath));
+	bool encryption = std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption));
+	std::string password = std::get<std::string>(config.getOption(ConfigurationManager::Option::Password));
+	bool disableCompression = std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression));
 
 	std::vector<unsigned char> _image;
 	unsigned int _width;
 	unsigned int _height;
 
-	if (strcmp(argv[1], "a") == 0) {
-		if (!(std::filesystem::exists(argv[2]) && std::filesystem::exists(argv[3]))) {
+	if (mode != ConfigurationManager::Mode::HELP) {
+		if (!(std::filesystem::exists(imagePath) && (std::filesystem::exists(dataPath) || dataPath.empty()))) {
 			std::cout << "One or more specified files do not exist" << std::endl;
 			exit(EXIT_FAILURE);
 		}
+	}
 
-		SteganoPNG::decodeOneStep(argv[2], &_image, &_width, &_height);
+	switch (mode) {
+		case ConfigurationManager::Mode::HIDE:
+		{
 
-		bool compression = true;
-		if (argc > 4) {
-			if (strcmp(argv[4], "--no-compression") == 0) compression = false;
-		}
-		else if (argc > 6) {
-			if (strcmp(argv[6], "--no-compression") == 0) compression = false;
-		}
+			SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height);
 
-		SteganoPNG::validateStorageSpace(argv[2], argv[3], _width, _height, compression);
+			SteganoPNG::validateStorageSpace((char*)imagePath.c_str(), (char*)dataPath.c_str(), _width, _height, !disableCompression);
 
-		std::vector<unsigned char> dataToHide = SteganoPNG::readAllBytes(argv[3]);
+			std::vector<unsigned char> dataToHide = SteganoPNG::readAllBytes(dataPath);
 
-		if (compression) {
-
+			if (!disableCompression) {
 #ifndef USEZOPFLI
-			dataToHide = SteganoPNG::zlibCompress(dataToHide);
+				dataToHide = SteganoPNG::zlibCompress(dataToHide);
 #else
-			dataToHide = SteganoPNG::zopfliCompress(dataToHide);
+				dataToHide = SteganoPNG::zopfliCompress(dataToHide);
 #endif // USEZOPFLI
-			dataToHide.shrink_to_fit();
-		}
+				dataToHide.shrink_to_fit();
+			}
 
-		unsigned char* pixel = _image.data();
+			unsigned char* pixel = _image.data();
 
-		if (argc == 6 || argc == 7) {
-			if (strcmp(argv[4], "-p") == 0) {
+			if (encryption) {
 				CryptoPP::byte key[AES::MAX_KEYLENGTH];
 				CryptoPP::byte iv[AES::BLOCKSIZE];
 
-				memcpy(key, SteganoPNG::generateSHA256(argv[5]), sizeof(key));
+				memcpy(key, SteganoPNG::generateSHA256(password), sizeof(key));
 				memcpy(iv, key, sizeof(iv));
 
 				dataToHide = SteganoPNG::Encrypt(key, iv, dataToHide);
 			}
+
+			CryptoPP::byte* seed = new CryptoPP::byte[SHA256::DIGESTSIZE];
+			memcpy(seed, SteganoPNG::generateSHA256(std::to_string(std::chrono::system_clock::now().time_since_epoch().count())), sizeof(seed));
+
+			SteganoPNG::writeLengthHeader((unsigned int)dataToHide.size(), pixel);
+			SteganoPNG::writeFilenameHeader(SteganoPNG::getFileName(dataPath), pixel);
+			SteganoPNG::writeSeedHeader(seed, pixel);
+			SteganoPNG::hideDataInImage(dataToHide, seed, pixel, _image);
+
+			SteganoPNG::encodeOneStep(imagePath.c_str(), _image, _width, _height);
+
+			break;
 		}
+		case ConfigurationManager::Mode::EXTRACT:
+		{
 
-		CryptoPP::byte* seed = new CryptoPP::byte[SHA256::DIGESTSIZE];
-		memcpy(seed, SteganoPNG::generateSHA256(std::to_string(std::chrono::system_clock::now().time_since_epoch().count())), sizeof(seed));
+			SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height);
+			unsigned char* pixel = _image.data();
 
-		SteganoPNG::writeLengthHeader((unsigned int)dataToHide.size(), pixel);
-		SteganoPNG::writeFilenameHeader(SteganoPNG::getFileName(std::string(argv[3])), pixel);
-		SteganoPNG::writeSeedHeader(seed, pixel);
-		SteganoPNG::hideDataInImage(dataToHide, seed, pixel, _image);
+			int length = SteganoPNG::readLengthHeader(pixel);
+			std::string filename = SteganoPNG::readFilenameHeader(pixel);
+			CryptoPP::byte* seed = SteganoPNG::readSeedHeader(pixel);
 
-		SteganoPNG::encodeOneStep(argv[2], _image, _width, _height);
+			std::ofstream src(filename);
+			if (!src) {
+				std::cout << "This file does not contain a valid filename header. Are you sure it contains hidden data?" << std::endl;
+				exit(EXIT_FAILURE);
+			}
 
-		exit(EXIT_SUCCESS);
-	}
-	else if (strcmp(argv[1], "x") == 0){
+			std::vector<unsigned char> extractedData = SteganoPNG::extractDataFromImage(length, seed, pixel, _image);
 
-		if (!std::filesystem::exists(argv[2])) {
-			std::cout << "One or more specified files do not exist" << std::endl;
-			exit(EXIT_FAILURE);
-		}
-
-		bool compression = true;
-		if (argc > 3) {
-			if (strcmp(argv[3], "--no-compression") == 0) compression = false;
-		}
-		else if (argc > 5) {
-			if (strcmp(argv[5], "--no-compression") == 0) compression = false;
-		}
-
-		SteganoPNG::decodeOneStep(argv[2], &_image, &_width, &_height);
-		unsigned char* pixel = _image.data();
-
-		int length = SteganoPNG::readLengthHeader(pixel);
-		std::string filename = SteganoPNG::readFilenameHeader(pixel);
-		CryptoPP::byte* seed = SteganoPNG::readSeedHeader(pixel);
-
-		std::ofstream src(filename);
-		if (!src) {
-			std::cout << "This file does not contain a valid filename header. Are you sure it contains hidden data?" << std::endl;
-			exit(EXIT_FAILURE);
-		}
-
-		std::vector<unsigned char> extractedData = SteganoPNG::extractDataFromImage(length, seed, pixel, _image);
-
-		if (argc == 5 || argc == 6) {
-			if (strcmp(argv[3], "-p") == 0) {
+			if (!disableCompression) {
 				CryptoPP::byte key[AES::MAX_KEYLENGTH];
 				CryptoPP::byte iv[AES::BLOCKSIZE];
 
-				memcpy(key, SteganoPNG::generateSHA256(argv[4]), sizeof(key));
+				memcpy(key, SteganoPNG::generateSHA256(password), sizeof(key));
 				memcpy(iv, key, sizeof(iv));
 				try {
 					//In case a password is specified with the -p argument but the data isnt SteganoPNG::Encrypted
@@ -139,9 +128,7 @@ int main(int argc, char** argv) {
 				catch (Exception ex) {
 					//ignore error silently
 				}
-				
 			}
-		}
 
 			try {
 				//if the data was saved with the --no-compression flag this will cause an error and instead use the original value for extractedData
@@ -152,40 +139,35 @@ int main(int argc, char** argv) {
 				//ignore error silently
 			}
 
-		SteganoPNG::writeAllBytes(filename, extractedData);
+			SteganoPNG::writeAllBytes(filename, extractedData);
 
-	}
-	else if (strcmp(argv[1], "t") == 0) {
-
-		if (!(std::filesystem::exists(argv[2]) && std::filesystem::exists(argv[3]))){
-			std::cout << "One or more specified files do not exist" << std::endl;
-			exit(EXIT_FAILURE);
+			break;
 		}
+		case ConfigurationManager::Mode::TEST:
+		{
+			SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height);
 
-		SteganoPNG::decodeOneStep(argv[2], &_image, &_width, &_height);
 
-		bool compression = true;
-		if (argc > 4) {
-			if (strcmp(argv[4], "--no-compression")) compression = false;
+			bool result = SteganoPNG::validateStorageSpace((char*)imagePath.c_str(), (char*)dataPath.c_str(), _width, _height, !disableCompression);
+			if (result) {
+				std::cout << "The file " << SteganoPNG::getFileName(imagePath) << " contains enough pixels to hide all data of " << SteganoPNG::getFileName(dataPath) << " ." << std::endl;
+				exit(EXIT_SUCCESS);
+			}
+			else {
+				std::cout << "The file " << SteganoPNG::getFileName(imagePath) << " does not contain enough pixels to hide all data of " << SteganoPNG::getFileName(dataPath) << " ." << std::endl;
+				exit(EXIT_FAILURE);
+			}
+
+			break;
 		}
-		
-
-		bool result = SteganoPNG::validateStorageSpace(argv[2], argv[3], _width, _height, compression);
-		if (result) {
-			std::cout << "The file " << SteganoPNG::getFileName(argv[2]) << " contains enough pixels to hide all data of " << SteganoPNG::getFileName(argv[3]) << " ." << std::endl;
+		case ConfigurationManager::Mode::HELP:
+			[[fallthrough]];
+		default:
+		{
+			SteganoPNG::printHelp();
 			exit(EXIT_SUCCESS);
 		}
-		else {
-			std::cout << "The file " << SteganoPNG::getFileName(argv[2]) << " does not contain enough pixels to hide all data of " << SteganoPNG::getFileName(argv[3]) << " ." << std::endl;
-			exit(EXIT_FAILURE);
-		}
-		
 	}
-	else {
-		SteganoPNG::printHelp();
-		exit(EXIT_FAILURE);
-	}
-
 	return 0;
 }
 
