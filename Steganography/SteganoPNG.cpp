@@ -170,10 +170,16 @@ int main(int argc, char** argv) {
 		}
 		
 
-		SteganoPNG::validateStorageSpace(argv[2], argv[3], _width, _height, compression);
-
-		std::cout << "The file " << SteganoPNG::getFileName(argv[2]) << " contains enough pixels to hide all data of " << SteganoPNG::getFileName(argv[2]) << " ." << std::endl;
-		exit(EXIT_SUCCESS);
+		bool result = SteganoPNG::validateStorageSpace(argv[2], argv[3], _width, _height, compression);
+		if (result) {
+			std::cout << "The file " << SteganoPNG::getFileName(argv[2]) << " contains enough pixels to hide all data of " << SteganoPNG::getFileName(argv[3]) << " ." << std::endl;
+			exit(EXIT_SUCCESS);
+		}
+		else {
+			std::cout << "The file " << SteganoPNG::getFileName(argv[2]) << " does not contain enough pixels to hide all data of " << SteganoPNG::getFileName(argv[3]) << " ." << std::endl;
+			exit(EXIT_FAILURE);
+		}
+		
 	}
 	else {
 		SteganoPNG::printHelp();
@@ -246,10 +252,6 @@ bool SteganoPNG::validateStorageSpace(char* imageFile, char* dataFile, unsigned 
 	size_t dataLength = 8 * data.size();
 	if ((subpixelcount - 2048 - 32) > dataLength) {
 		result = true;
-	}
-	else {
-		std::cout << "The file " << SteganoPNG::getFileName(imageFile) << " does not contain enough pixels to hide all data of " << SteganoPNG::getFileName(dataFile) << " ." << std::endl;
-		exit(EXIT_FAILURE);
 	}
 
 	return result;
@@ -675,10 +677,6 @@ std::vector<CryptoPP::byte> SteganoPNG::zlibCompress(std::vector<CryptoPP::byte>
 
 		zipper.Get(&compressed[0], compressed.size());
 		return compressed;
-	}
-	else {
-		std::cout << "A fatal error has occured during compression." << std::endl;
-		exit(EXIT_FAILURE);
 	}
 }
 

@@ -266,6 +266,34 @@ namespace UnitTest
 			Assert::IsTrue(plain_vector == read_data);
 
 		}
+		TEST_METHOD(TestPNGEncodingAndDecoding)
+		{
+			std::vector<unsigned char> expected_image(1024, (unsigned char)255);
+
+			string imagefile = std::string(TEST_CASE_DIRECTORY) + "test.png";
+
+			std::vector<unsigned char> _image;
+			unsigned int _width;
+			unsigned int _height;
+
+			std::vector<CryptoPP::byte> raw_image = {	137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82,
+														0, 0, 0, 16, 0, 0, 0, 16, 1, 0, 0, 0, 0, 55, 136, 194,
+														204, 0, 0, 0, 22, 73, 68, 65, 84, 120, 1, 149, 194, 1, 13, 0,
+														0, 0, 194, 32, 251, 151, 198, 12, 103, 140, 244, 253, 78, 31, 225, 247,
+														41, 68, 93, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130 };
+
+			SteganoPNG::writeAllBytes(imagefile, raw_image);
+			SteganoPNG::decodeOneStep(imagefile.c_str(), &_image, &_width, &_height);
+			remove(imagefile.c_str());
+
+			SteganoPNG::encodeOneStep(imagefile.c_str(), _image, _width, _height);
+			std::vector<CryptoPP::byte> reconstructed_image = SteganoPNG::readAllBytes(imagefile);
+
+			Assert::IsTrue(expected_image == _image);
+			Assert::IsTrue(raw_image == reconstructed_image);
+			remove(imagefile.c_str());
+
+		}
 		TEST_METHOD(TestNoiseGeneration)
 		{
 			vector<unsigned int> expected_noise{ 2348, 2410, 2408, 2459, 2395, 2406, 2449, 2397, 2458, 2416, 2383, 2341, 2377, 2453, 2347, 2376, 2375, 2364, 2426, 2345, 2429, 2414, 2362, 2415, 2349, 2412, 2387, 2338, 2450, 2413, 2365, 2455, 2447, 2366, 2435, 2423, 2361, 2339, 2428, 2442, 2462, 2381, 2393, 2440, 2444, 2358, 2360, 2432, 2391, 2425, 2368, 2443, 2371, 2399, 2373, 2403, 2356, 2392, 2401, 2342, 2389, 2457, 2386, 2372 };
