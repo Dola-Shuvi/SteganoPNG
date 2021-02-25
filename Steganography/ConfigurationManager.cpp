@@ -80,11 +80,4 @@ ConfigurationManager::ConfigurationManager(int argc, char *commandLine[])
 
     }
 
-    std::cout << "Mode: \t" << (int)std::get<Mode>(getOption(Option::Mode)) << std::endl;
-    std::cout << "Image Path: \t" << std::get<std::string>(getOption(Option::ImagePath)) << std::endl;
-    std::cout << "Data Path: \t" << std::get<std::string>(getOption(Option::DataPath)) << std::endl;
-    std::cout << "Encryption: \t" << std::get<bool>(getOption(Option::Encryption)) << std::endl;
-    std::cout << "Password: \t" << std::get<std::string>(getOption(Option::Password)) << std::endl;
-    std::cout << "Disable Compression: \t" << std::get<bool>(getOption(Option::DisableCompression)) << std::endl << std::endl;
-
 }
