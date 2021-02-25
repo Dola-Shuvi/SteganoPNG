@@ -35,9 +35,9 @@ Building on unix systems is greatly simplified by using a Makefile.  Simply run 
 
 Building on windows is as simple as cloning the repository into Visual Studio 2019 and building the **Release** or **Debug** configuration.
 
-The **Release-Zopfli** and **Debug-Zopfli** configurations on Windows contain stronger compression provided by Zopfli but are slightly slower and are disabled by default. To use them you should compile the zopfli submodule that was cloned. You will need to build a Zopfli library and place it in the `zopfli` directory.
+The **Release-Zopfli** and **Debug-Zopfli** configurations on Windows contain stronger compression provided by Zopfli but are slightly slower and are disabled by default. To use them you should compile the zopfli submodule that was cloned.
 
-If you wish to enable them on unix please uncomment `#define USEZOPFLI` in [SteganoPNG.cpp](https://github.com/Dola-Shuvi/SteganoPNG/blob/master/Steganography/SteganoPNG.cpp). The library is required in the same directory as on Windows.
+If you wish to enable them on unix please uncomment `#define USEZOPFLI` in [SteganoPNG.cpp](https://github.com/Dola-Shuvi/SteganoPNG/blob/master/Steganography/SteganoPNG.cpp) and build the library with `cmake .` followed by `cmake --build .`
 
  For information on how to use the feature please run `SteganoPNG -h` .
 
