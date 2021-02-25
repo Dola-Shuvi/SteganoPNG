@@ -123,7 +123,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;$(SolutionDir)x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(SolutionDir).temp\x64\Debug-Zopfli\SteganoPNG.obj;$(SolutionDir).temp\x64\Debug-Zopfli\ConfigurationManager.obj;$(SolutionDir).temp\x64\Debug-Zopfli\lodepng.obj;$(SolutionDir)Steganography\zopfli\zopfli.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(SolutionDir).temp\x64\Debug-Zopfli\SteganoPNG.obj;$(SolutionDir).temp\x64\Debug-Zopfli\ConfigurationManager.obj;$(SolutionDir).temp\x64\Debug-Zopfli\lodepng.obj;$(SolutionDir)Steganography\zopfli\out\build\x64-Release\zopfli.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
