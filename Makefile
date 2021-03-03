@@ -8,7 +8,7 @@ all: install
 
 install: cryptopp zopfli
 	cd Steganography; \
-	$(CXX) $(CXXFLAGS) SteganoPNG.cpp LodePNG/lodepng.cpp $(LDLIBS) $(ZOPFLI); \
+	$(CXX) $(CXXFLAGS) SteganoPNG.cpp ConfigurationManager.cpp LodePNG/lodepng.cpp $(LDLIBS) $(ZOPFLI); \
 	strip SteganoPNG; \
 	cd ..; \
 	mkdir -p build; \
