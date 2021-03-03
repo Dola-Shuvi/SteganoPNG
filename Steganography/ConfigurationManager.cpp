@@ -2,6 +2,10 @@
 #include <variant>
 #include <iostream>
 
+#ifdef __linux__
+#include <cstring>
+#endif
+
 ConfigurationManager::ConfigurationManager(int argc, char *commandLine[])
 {
 
