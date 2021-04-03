@@ -46,8 +46,9 @@ void HideOnly(ConfigurationManager config) {
 	std::vector<unsigned char> _image;
 	unsigned int _width;
 	unsigned int _height;
+	lodepng::State _state;
 
-	SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height);
+	SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height, &_state);
 
 	SteganoPNG::validateStorageSpace((char*)imagePath.c_str(), (char*)dataPath.c_str(), _width, _height, !disableCompression);
 
@@ -82,7 +83,7 @@ void HideOnly(ConfigurationManager config) {
 	SteganoPNG::writeSeedHeader(seed, pixel);
 	SteganoPNG::hideDataInImage(dataToHide, seed, pixel, _image);
 
-	SteganoPNG::encodeOneStep(imagePath.c_str(), _image, _width, _height);
+	SteganoPNG::encodeOneStep(imagePath.c_str(), _image, _width, _height, _state);
 
 	remove(dataPath.c_str());
 
@@ -99,8 +100,9 @@ std::vector<unsigned char> ExtractOnly(ConfigurationManager config) {
 	std::vector<unsigned char> _image;
 	unsigned int _width;
 	unsigned int _height;
+	lodepng::State _state;
 
-	SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height);
+	SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height, &_state);
 	unsigned char* pixel = _image.data();
 
 	int length = SteganoPNG::readLengthHeader(pixel);
@@ -176,8 +178,9 @@ bool ValidateStorageSpace(ConfigurationManager config) {
 	std::vector<unsigned char> _image;
 	unsigned int _width;
 	unsigned int _height;
+	lodepng::State _state;
 
-	SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height);
+	SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height, &_state);
 
 	return SteganoPNG::validateStorageSpace((char*)imagePath.c_str(), (char*)dataPath.c_str(), _width, _height, !disableCompression);
 }
@@ -275,6 +278,7 @@ namespace UnitTest
 			std::vector<unsigned char> _image;
 			unsigned int _width;
 			unsigned int _height;
+			lodepng::State _state;
 
 			std::vector<CryptoPP::byte> raw_image = {	137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82,
 														0, 0, 0, 16, 0, 0, 0, 16, 1, 0, 0, 0, 0, 55, 136, 194,
@@ -283,10 +287,10 @@ namespace UnitTest
 														41, 68, 93, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130 };
 
 			SteganoPNG::writeAllBytes(imagefile, raw_image);
-			SteganoPNG::decodeOneStep(imagefile.c_str(), &_image, &_width, &_height);
+			SteganoPNG::decodeOneStep(imagefile.c_str(), &_image, &_width, &_height, &_state);
 			remove(imagefile.c_str());
 
-			SteganoPNG::encodeOneStep(imagefile.c_str(), _image, _width, _height);
+			SteganoPNG::encodeOneStep(imagefile.c_str(), _image, _width, _height, _state);
 			std::vector<CryptoPP::byte> reconstructed_image = SteganoPNG::readAllBytes(imagefile);
 
 			Assert::IsTrue(expected_image == _image);

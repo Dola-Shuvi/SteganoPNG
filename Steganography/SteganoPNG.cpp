@@ -46,6 +46,7 @@ int main(int argc, char* argv[]) {
 	std::vector<unsigned char> _image;
 	unsigned int _width;
 	unsigned int _height;
+	lodepng::State _state;
 
 	if (mode != ConfigurationManager::Mode::HELP) {
 		if (!(std::filesystem::exists(imagePath) && (std::filesystem::exists(dataPath) || dataPath.empty()))) {
@@ -58,7 +59,7 @@ int main(int argc, char* argv[]) {
 		case ConfigurationManager::Mode::HIDE:
 		{
 
-			SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height);
+			SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height, &_state);
 
 			SteganoPNG::validateStorageSpace((char*)imagePath.c_str(), (char*)dataPath.c_str(), _width, _height, !disableCompression);
 
@@ -93,14 +94,14 @@ int main(int argc, char* argv[]) {
 			SteganoPNG::writeSeedHeader(seed, pixel);
 			SteganoPNG::hideDataInImage(dataToHide, seed, pixel, _image);
 
-			SteganoPNG::encodeOneStep(imagePath.c_str(), _image, _width, _height);
+			SteganoPNG::encodeOneStep(imagePath.c_str(), _image, _width, _height, _state);
 
 			break;
 		}
 		case ConfigurationManager::Mode::EXTRACT:
 		{
 
-			SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height);
+			SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height, &_state);
 			unsigned char* pixel = _image.data();
 
 			int length = SteganoPNG::readLengthHeader(pixel);
@@ -145,7 +146,7 @@ int main(int argc, char* argv[]) {
 		}
 		case ConfigurationManager::Mode::TEST:
 		{
-			SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height);
+			SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height, &_state);
 
 
 			bool result = SteganoPNG::validateStorageSpace((char*)imagePath.c_str(), (char*)dataPath.c_str(), _width, _height, !disableCompression);
@@ -263,29 +264,47 @@ std::vector<unsigned int> SteganoPNG::generateNoise(CryptoPP::byte* seedPointer,
 
 #pragma region DiskIO
 
-void SteganoPNG::decodeOneStep(const char* filename, std::vector<unsigned char> *_image, unsigned int *_width, unsigned int *_height) {
+void SteganoPNG::decodeOneStep(const char* filename, std::vector<unsigned char> *_image, unsigned int *_width, unsigned int *_height, lodepng::State *_state) {
+	std::vector<unsigned char> png;
 	std::vector<unsigned char> image; //the raw pixels
 	unsigned width, height;
+	lodepng::State state; //optionally customize this one
 
-	//decode
-	unsigned error = lodepng::decode(image, width, height, filename);
+	unsigned error = lodepng::load_file(png, filename); //load the image file with given filename
+	if (!error) error = lodepng::decode(image, width, height, state, png);
 
 	//if there's an error, display it
 	if (error) {
 		std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
-		std::cout << "The image you provided is corrupted or not supported. Please provide a PNG file." << std::endl;
 		exit(EXIT_FAILURE);
 	}
+		
 
 	//the pixels are now in the vector "image", 4 bytes per pixel, ordered RGBARGBA..., use it as texture, draw it, ...
+	//State state contains extra information about the PNG such as text chunks, ...
 	*_image = image;
 	*_width = width;
 	*_height = height;
+	*_state = state;
 }
 
-void SteganoPNG::encodeOneStep(const char* filename, std::vector<unsigned char>& image, unsigned width, unsigned height) {
-	//Encode the image
-	unsigned error = lodepng::encode(filename, image, width, height);
+void SteganoPNG::encodeOneStep(const char* filename, std::vector<unsigned char>& image, unsigned width, unsigned height, lodepng::State _state) {
+	std::vector<unsigned char> png;
+
+	_state.info_png.color.colortype = LodePNGColorType::LCT_RGBA; //temporary until full RGB support
+
+	_state.encoder.auto_convert = false;
+	_state.encoder.filter_strategy = LodePNGFilterStrategy(_state.info_png.filter_method);
+	_state.encoder.filter_palette_zero = false;
+	
+	_state.encoder.zlibsettings.btype = 2;
+	_state.encoder.zlibsettings.use_lz77 = true;
+	_state.encoder.zlibsettings.windowsize = 32768;
+	_state.encoder.zlibsettings.nicematch = 258;
+	_state.encoder.zlibsettings.lazymatching = 1;
+
+	unsigned error = lodepng::encode(png, image, width, height, _state);
+	if (!error) lodepng::save_file(png, filename);
 
 	//if there's an error, display it
 	if (error) std::cout << "encoder error " << error << ": " << lodepng_error_text(error) << std::endl;
