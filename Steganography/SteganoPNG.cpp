@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
 
 			SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height, &_state);
 
-			SteganoPNG::validateStorageSpace((char*)imagePath.c_str(), (char*)dataPath.c_str(), _width, _height, !disableCompression);
+			SteganoPNG::validateStorageSpace(_image, (char*)dataPath.c_str(), _width, _height, _state, !disableCompression);
 
 			std::vector<unsigned char> dataToHide = SteganoPNG::readAllBytes(dataPath);
 
@@ -149,7 +149,7 @@ int main(int argc, char* argv[]) {
 			SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height, &_state);
 
 
-			bool result = SteganoPNG::validateStorageSpace((char*)imagePath.c_str(), (char*)dataPath.c_str(), _width, _height, !disableCompression);
+			bool result = SteganoPNG::validateStorageSpace(_image, (char*)dataPath.c_str(), _width, _height, _state, !disableCompression);
 			if (result) {
 				std::cout << "The file " << SteganoPNG::getFileName(imagePath) << " contains enough pixels to hide all data of " << SteganoPNG::getFileName(dataPath) << " ." << std::endl;
 				exit(EXIT_SUCCESS);
@@ -214,7 +214,7 @@ void SteganoPNG::printHelp() {
 		;
 }
 
-bool SteganoPNG::validateStorageSpace(char* imageFile, char* dataFile, unsigned int _width, unsigned int _height, bool compression = true) {
+bool SteganoPNG::validateStorageSpace(std::vector<CryptoPP::byte> _image, char* dataFile, unsigned int _width, unsigned int _height, lodepng::State _state, bool compression = true) {
 
 	bool result = false;
 
@@ -231,7 +231,7 @@ bool SteganoPNG::validateStorageSpace(char* imageFile, char* dataFile, unsigned 
 		data.shrink_to_fit();
 	}
 
-	size_t subpixelcount = (size_t)_width * (size_t)_height * 4;
+	size_t subpixelcount = _image.size();
 	size_t dataLength = 8 * data.size();
 	if ((subpixelcount - 2048 - 32) > dataLength) {
 		result = true;
@@ -271,6 +271,11 @@ void SteganoPNG::decodeOneStep(const char* filename, std::vector<unsigned char> 
 	lodepng::State state; //optionally customize this one
 
 	unsigned error = lodepng::load_file(png, filename); //load the image file with given filename
+
+	lodepng_inspect(&width, &height, &state, &png[0], png.size()); //check if image is RGB instead of RGBA
+	if (state.info_png.color.colortype == LodePNGColorType::LCT_RGB)
+		state.info_raw.colortype = LodePNGColorType::LCT_RGB;
+
 	if (!error) error = lodepng::decode(image, width, height, state, png);
 
 	//if there's an error, display it
@@ -290,8 +295,6 @@ void SteganoPNG::decodeOneStep(const char* filename, std::vector<unsigned char> 
 
 void SteganoPNG::encodeOneStep(const char* filename, std::vector<unsigned char>& image, unsigned width, unsigned height, lodepng::State _state) {
 	std::vector<unsigned char> png;
-
-	_state.info_png.color.colortype = LodePNGColorType::LCT_RGBA; //temporary until full RGB support
 
 	_state.encoder.auto_convert = false;
 	_state.encoder.filter_strategy = LodePNGFilterStrategy(_state.info_png.filter_method);

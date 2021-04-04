@@ -50,7 +50,7 @@ void HideOnly(ConfigurationManager config) {
 
 	SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height, &_state);
 
-	SteganoPNG::validateStorageSpace((char*)imagePath.c_str(), (char*)dataPath.c_str(), _width, _height, !disableCompression);
+	SteganoPNG::validateStorageSpace(_image, (char*)dataPath.c_str(), _width, _height, _state, !disableCompression);
 
 	std::vector<unsigned char> dataToHide = SteganoPNG::readAllBytes(dataPath);
 
@@ -182,9 +182,17 @@ bool ValidateStorageSpace(ConfigurationManager config) {
 
 	SteganoPNG::decodeOneStep(imagePath.c_str(), &_image, &_width, &_height, &_state);
 
-	return SteganoPNG::validateStorageSpace((char*)imagePath.c_str(), (char*)dataPath.c_str(), _width, _height, !disableCompression);
+	return SteganoPNG::validateStorageSpace(_image, (char*)dataPath.c_str(), _width, _height, _state, !disableCompression);
 }
 
+void RunAsserts(ConfigurationManager config, ConfigurationManager::Mode _mode, string _imagefile, string _testfile, bool _Encryption, string _password, bool _disableCompression) {
+	Assert::AreEqual((int)_mode, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
+	Assert::AreEqual(_imagefile, std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
+	Assert::AreEqual(_testfile, std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
+	Assert::AreEqual(_Encryption, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
+	Assert::AreEqual(_password, std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
+	Assert::AreEqual(_disableCompression, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
+}
 
 namespace UnitTest
 {
@@ -274,6 +282,7 @@ namespace UnitTest
 			std::vector<unsigned char> expected_image(1024, (unsigned char)255);
 
 			string imagefile = std::string(TEST_CASE_DIRECTORY) + "test.png";
+			Logger::WriteMessage(imagefile.c_str());
 
 			std::vector<unsigned char> _image;
 			unsigned int _width;
@@ -320,12 +329,7 @@ namespace UnitTest
 
 			ConfigurationManager config = ConfigurationManager(argumentCount, argumentValues);
 
-			Assert::AreEqual((int)ConfigurationManager::Mode::HIDE, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
-			Assert::AreEqual(imagefile, std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
-			Assert::AreEqual(testfile, std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
-			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
-			Assert::AreEqual(std::string(""), std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
-			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
+			RunAsserts(config, ConfigurationManager::Mode::HIDE, imagefile, testfile, false, std::string(""), false);
 
 			std::vector<unsigned char> extracted = HideAndExtract(config);
 
@@ -347,12 +351,7 @@ namespace UnitTest
 
 			ConfigurationManager config = ConfigurationManager(argumentCount, argumentValues);
 
-			Assert::AreEqual((int)ConfigurationManager::Mode::HIDE, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
-			Assert::AreEqual(imagefile, std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
-			Assert::AreEqual(testfile, std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
-			Assert::AreEqual(true, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
-			Assert::AreEqual(std::string("Test"), std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
-			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
+			RunAsserts(config, ConfigurationManager::Mode::HIDE, imagefile, testfile, true, std::string("Test"), false);
 
 			std::vector<unsigned char> extracted = HideAndExtract(config);
 
@@ -374,12 +373,7 @@ namespace UnitTest
 
 			ConfigurationManager config = ConfigurationManager(argumentCount, argumentValues);
 
-			Assert::AreEqual((int)ConfigurationManager::Mode::HIDE, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
-			Assert::AreEqual(imagefile, std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
-			Assert::AreEqual(testfile, std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
-			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
-			Assert::AreEqual(std::string(""), std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
-			Assert::AreEqual(true, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
+			RunAsserts(config, ConfigurationManager::Mode::HIDE, imagefile, testfile, false, std::string(""), true);
 
 			std::vector<unsigned char> extracted = HideAndExtract(config);
 
@@ -401,12 +395,7 @@ namespace UnitTest
 
 			ConfigurationManager config = ConfigurationManager(argumentCount, argumentValues);
 
-			Assert::AreEqual((int)ConfigurationManager::Mode::HIDE, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
-			Assert::AreEqual(imagefile, std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
-			Assert::AreEqual(testfile, std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
-			Assert::AreEqual(true, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
-			Assert::AreEqual(std::string("Test"), std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
-			Assert::AreEqual(true, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
+			RunAsserts(config, ConfigurationManager::Mode::HIDE, imagefile, testfile, true, std::string("Test"), true);
 
 			std::vector<unsigned char> extracted = HideAndExtract(config);
 
@@ -433,12 +422,7 @@ namespace UnitTest
 
 			ConfigurationManager config2 = ConfigurationManager(argumentCount2, argumentValues2);
 
-			Assert::AreEqual((int)ConfigurationManager::Mode::EXTRACT, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
-			Assert::AreEqual(imagefile, std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
-			Assert::AreEqual(std::string(""), std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
-			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
-			Assert::AreEqual(std::string(""), std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
-			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
+			RunAsserts(config, ConfigurationManager::Mode::EXTRACT, imagefile, std::string(""), false, std::string(""), false);
 
 			HideOnly(config2);
 
@@ -467,12 +451,7 @@ namespace UnitTest
 
 			ConfigurationManager config2 = ConfigurationManager(argumentCount2, argumentValues2);
 
-			Assert::AreEqual((int)ConfigurationManager::Mode::EXTRACT, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
-			Assert::AreEqual(imagefile, std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
-			Assert::AreEqual(std::string(""), std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
-			Assert::AreEqual(true, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
-			Assert::AreEqual(std::string("Test"), std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
-			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
+			RunAsserts(config, ConfigurationManager::Mode::EXTRACT, imagefile, std::string(""), true, std::string("Test"), false);
 
 			HideOnly(config2);
 
@@ -501,12 +480,7 @@ namespace UnitTest
 
 			ConfigurationManager config2 = ConfigurationManager(argumentCount2, argumentValues2);
 
-			Assert::AreEqual((int)ConfigurationManager::Mode::EXTRACT, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
-			Assert::AreEqual(imagefile, std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
-			Assert::AreEqual(std::string(""), std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
-			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
-			Assert::AreEqual(std::string(""), std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
-			Assert::AreEqual(true, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
+			RunAsserts(config, ConfigurationManager::Mode::EXTRACT, imagefile, std::string(""), false, std::string(""), true);
 
 			HideOnly(config2);
 
@@ -535,12 +509,7 @@ namespace UnitTest
 
 			ConfigurationManager config2 = ConfigurationManager(argumentCount2, argumentValues2);
 
-			Assert::AreEqual((int)ConfigurationManager::Mode::EXTRACT, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
-			Assert::AreEqual(imagefile, std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
-			Assert::AreEqual(std::string(""), std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
-			Assert::AreEqual(true, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
-			Assert::AreEqual(std::string("Test"), std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
-			Assert::AreEqual(true, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
+			RunAsserts(config, ConfigurationManager::Mode::EXTRACT, imagefile, std::string(""), true, std::string("Test"), true);
 
 			HideOnly(config2);
 
@@ -563,12 +532,7 @@ namespace UnitTest
 
 			ConfigurationManager config= ConfigurationManager(argumentCount, argumentValues);
 
-			Assert::AreEqual((int)ConfigurationManager::Mode::TEST, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
-			Assert::AreEqual(imagefile, std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
-			Assert::AreEqual(testfile, std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
-			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
-			Assert::AreEqual(std::string(""), std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
-			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
+			RunAsserts(config, ConfigurationManager::Mode::TEST, imagefile, testfile, false, std::string(""), false);
 
 			Assert::IsTrue(ValidateStorageSpace(config));
 
@@ -588,12 +552,7 @@ namespace UnitTest
 
 			ConfigurationManager config= ConfigurationManager(argumentCount, argumentValues);
 
-			Assert::AreEqual((int)ConfigurationManager::Mode::TEST, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
-			Assert::AreEqual(imagefile, std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
-			Assert::AreEqual(testfile, std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
-			Assert::AreEqual(true, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
-			Assert::AreEqual(std::string("Test"), std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
-			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
+			RunAsserts(config, ConfigurationManager::Mode::TEST, imagefile, testfile, true, std::string("Test"), false);
 
 			Assert::IsTrue(ValidateStorageSpace(config));
 
@@ -613,12 +572,7 @@ namespace UnitTest
 
 			ConfigurationManager config= ConfigurationManager(argumentCount, argumentValues);
 
-			Assert::AreEqual((int)ConfigurationManager::Mode::TEST, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
-			Assert::AreEqual(imagefile, std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
-			Assert::AreEqual(testfile, std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
-			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
-			Assert::AreEqual(std::string(""), std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
-			Assert::AreEqual(true, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
+			RunAsserts(config, ConfigurationManager::Mode::TEST, imagefile, testfile, false, std::string(""), true);
 
 			Assert::IsTrue(ValidateStorageSpace(config));
 
@@ -638,12 +592,7 @@ namespace UnitTest
 
 			ConfigurationManager config = ConfigurationManager(argumentCount, argumentValues);
 
-			Assert::AreEqual((int)ConfigurationManager::Mode::TEST, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
-			Assert::AreEqual(imagefile, std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
-			Assert::AreEqual(testfile, std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
-			Assert::AreEqual(true, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
-			Assert::AreEqual(std::string("Test"), std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
-			Assert::AreEqual(true, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
+			RunAsserts(config, ConfigurationManager::Mode::TEST, imagefile, testfile, true, std::string("Test"), true);
 
 			Assert::IsTrue(ValidateStorageSpace(config));
 
@@ -658,12 +607,7 @@ namespace UnitTest
 
 			ConfigurationManager config = ConfigurationManager(argumentCount, argumentValues);
 
-			Assert::AreEqual((int)ConfigurationManager::Mode::HELP, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
-			Assert::AreEqual(std::string(""), std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
-			Assert::AreEqual(std::string(""), std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
-			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
-			Assert::AreEqual(std::string(""), std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
-			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
+			RunAsserts(config, ConfigurationManager::Mode::HELP, std::string(""), std::string(""), false, std::string(""), false);
 
 		}
 		TEST_METHOD(ValidateConfiguration14)
@@ -673,12 +617,7 @@ namespace UnitTest
 
 			ConfigurationManager config = ConfigurationManager(argumentCount, argumentValues);
 
-			Assert::AreEqual((int)ConfigurationManager::Mode::HELP, (int)std::get<ConfigurationManager::Mode>(config.getOption(ConfigurationManager::Option::Mode)));
-			Assert::AreEqual(std::string(""), std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath)));
-			Assert::AreEqual(std::string(""), std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath)));
-			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption)));
-			Assert::AreEqual(std::string(""), std::get<std::string>(config.getOption(ConfigurationManager::Option::Password)));
-			Assert::AreEqual(false, std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression)));
+			RunAsserts(config, ConfigurationManager::Mode::HELP, std::string(""), std::string(""), false, std::string(""), false);
 		}
 	};
 }

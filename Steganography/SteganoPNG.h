@@ -27,7 +27,7 @@ namespace SteganoPNG {
 
 	void printHelp();
 
-	bool validateStorageSpace(char* imageFile, char* dataFile, unsigned int _width, unsigned int _height, bool compression);
+	bool validateStorageSpace(std::vector<CryptoPP::byte> _image, char* dataFile, unsigned int _width, unsigned int _height, lodepng::State _state, bool compression);
 
 	std::vector<unsigned int> generateNoise(CryptoPP::byte* seedPointer, size_t dataLength, size_t imageLength);
 
