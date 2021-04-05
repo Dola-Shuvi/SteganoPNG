@@ -80,7 +80,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-Zopfli|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(ProjectDir)LodePNG;$(ProjectDir)CryptoPP;$(ProjectDir)zopfli\src\zopfli;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)CryptoPP\x64\Output\Debug;$(ProjectDir)zopfli\out\build\x64-Release;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(ProjectDir)CryptoPP\x64\Output\Debug;$(ProjectDir)zopfli\out\build\x64-Debug;$(LibraryPath)</LibraryPath>
     <IntDir>$(SolutionDir).temp\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
