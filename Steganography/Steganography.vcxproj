@@ -134,6 +134,17 @@
       <AdditionalDependencies>zopfli.lib;cryptlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)CryptoPP;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PreLinkEvent>
+      <Command>call "$(VCInstallDir)Auxiliary\Build\vcvarsall" x64
+cd $(SolutionDir)Steganography\zopfli
+if not exist out\build\x64-Debug mkdir out\build\x64-Debug
+cd out\build\x64-Debug
+cmake ..\..\.. -G "Ninja" -DCMAKE_CXX_FLAGS_DEBUG="/std:c++17 /MTd /Zi /Ob0 /Od /RTC1" -DCMAKE_C_FLAGS_DEBUG="/std:c17 /MTd /Zi /Ob0 /Od /RTC1"
+ninja libzopfli</Command>
+    </PreLinkEvent>
+    <PreLinkEvent>
+      <Message>Compiling libzopfli in debug mode...</Message>
+    </PreLinkEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -184,6 +195,17 @@
       <AdditionalLibraryDirectories>$(ProjectDir)CryptoPP;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>zopfli.lib;cryptlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreLinkEvent>
+      <Command>call "$(VCInstallDir)Auxiliary\Build\vcvarsall" x64
+cd $(SolutionDir)Steganography\zopfli
+if not exist out\build\x64-Release mkdir out\build\x64-Release
+cd out\build\x64-Release
+cmake ..\..\.. -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS_RELEASE="/std:c++17 /MT /O2 /Ob2 /DNDEBUG" -DCMAKE_C_FLAGS_RELEASE="/std:c17 /MT /O2 /Ob2 /DNDEBUG"
+ninja libzopfli</Command>
+    </PreLinkEvent>
+    <PreLinkEvent>
+      <Message>Compiling libzopfli in release mode...</Message>
+    </PreLinkEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ConfigurationManager.cpp" />
