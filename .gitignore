@@ -9,6 +9,8 @@
 *.user
 *.userosscache
 *.sln.docstates
+*-cppcheck-build-dir*
+*.cppcheck
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
