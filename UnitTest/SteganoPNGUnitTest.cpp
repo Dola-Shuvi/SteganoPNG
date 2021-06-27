@@ -66,7 +66,7 @@ void HideOnly(ConfigurationManager config) {
 	unsigned char* pixel = _image.data();
 
 	CryptoPP::byte* seed = new CryptoPP::byte[SHA256::DIGESTSIZE];
-	memcpy(seed, SteganoPNG::generateSHA256(std::to_string(std::chrono::system_clock::now().time_since_epoch().count())), sizeof(seed));
+	memcpy(seed, SteganoPNG::generateSHA256(std::to_string(std::chrono::system_clock::now().time_since_epoch().count())), SHA256::DIGESTSIZE);
 
 	if (encryption) {
 		CryptoPP::byte key[AES::MAX_KEYLENGTH];
@@ -123,7 +123,7 @@ std::vector<unsigned char> ExtractOnly(ConfigurationManager config) {
 			//In case a password is specified with the -p argument but the data isnt SteganoPNG::Encrypted
 			extractedData = SteganoPNG::Decrypt(key, iv, extractedData);
 		}
-		catch (Exception ex) {
+		catch (Exception) {
 			//ignore error silently
 		}
 	}
@@ -133,14 +133,14 @@ std::vector<unsigned char> ExtractOnly(ConfigurationManager config) {
 		extractedData = SteganoPNG::zlibDecompress(extractedData);
 		extractedData.shrink_to_fit();
 	}
-	catch (Exception ex) {
+	catch (Exception) {
 		//ignore error silently
 	}
 	return extractedData;
 
 }
 
-std::vector<unsigned char> HideAndExtract(ConfigurationManager config) {
+std::vector<unsigned char> HideAndExtract(const ConfigurationManager &config) {
 
 	HideOnly(config);
 
@@ -171,8 +171,6 @@ bool ValidateStorageSpace(ConfigurationManager config) {
 
 	std::string imagePath = std::get<std::string>(config.getOption(ConfigurationManager::Option::ImagePath));
 	std::string dataPath = std::get<std::string>(config.getOption(ConfigurationManager::Option::DataPath));
-	bool encryption = std::get<bool>(config.getOption(ConfigurationManager::Option::Encryption));
-	std::string password = std::get<std::string>(config.getOption(ConfigurationManager::Option::Password));
 	bool disableCompression = std::get<bool>(config.getOption(ConfigurationManager::Option::DisableCompression));
 
 	std::vector<unsigned char> _image;
@@ -224,12 +222,12 @@ namespace UnitTest
 
 			std::string password = "Password";
 
-			memcpy(key, SteganoPNG::generateSHA256(password.c_str()), sizeof(key));
+			memcpy(key, SteganoPNG::generateSHA256(password), sizeof(key));
 			memcpy(iv, key, sizeof(iv));
 
 			vector<unsigned char> encrypted = SteganoPNG::Encrypt(key, iv, plain);
 
-			memcpy(key, SteganoPNG::generateSHA256(password.c_str()), sizeof(key));
+			memcpy(key, SteganoPNG::generateSHA256(password), sizeof(key));
 			memcpy(iv, key, sizeof(iv));
 
 			vector<unsigned char> decrypted = SteganoPNG::Decrypt(key, iv, encrypted);
@@ -254,6 +252,13 @@ namespace UnitTest
 #else
 			vector<CryptoPP::byte> compressed = SteganoPNG::zlibCompress(plain);
 #endif	
+
+			try {
+				vector<unsigned char> failed_compressed = SteganoPNG::zlibCompress(vector<unsigned char>(0));
+			}
+			catch (const std::runtime_error &ex) {
+				Assert::AreEqual(ex.what(), "ZLib was not supplied with enough data");
+			}
 
 			vector<unsigned char> decompressed = SteganoPNG::zlibDecompress(compressed);
 
@@ -525,7 +530,7 @@ namespace UnitTest
 			string testfile = std::string(TEST_CASE_DIRECTORY) + "ConfigurationTest09.txt";
 			string imagefile = std::string(TEST_CASE_DIRECTORY) + "ConfigurationTest09.png";
 
-			std::vector<unsigned char> plain_vector = InitializeTestFiles(testfile, imagefile);
+			InitializeTestFiles(testfile, imagefile);
 
 			int argumentCount = 4;
 			char* argumentValues[] = { "", "t", (char*)imagefile.c_str(), (char*)testfile.c_str() };
@@ -545,7 +550,7 @@ namespace UnitTest
 			string testfile = std::string(TEST_CASE_DIRECTORY) + "ConfigurationTest10.txt";
 			string imagefile = std::string(TEST_CASE_DIRECTORY) + "ConfigurationTest10.png";
 
-			std::vector<unsigned char> plain_vector = InitializeTestFiles(testfile, imagefile);
+			InitializeTestFiles(testfile, imagefile);
 
 			int argumentCount = 6;
 			char* argumentValues[] = { "", "t", (char*)imagefile.c_str(), (char*)testfile.c_str(), "-p", "Test" };
@@ -565,7 +570,7 @@ namespace UnitTest
 			string testfile = std::string(TEST_CASE_DIRECTORY) + "ConfigurationTest11.txt";
 			string imagefile = std::string(TEST_CASE_DIRECTORY) + "ConfigurationTest11.png";
 
-			std::vector<unsigned char> plain_vector = InitializeTestFiles(testfile, imagefile);
+			InitializeTestFiles(testfile, imagefile);
 
 			int argumentCount = 5;
 			char* argumentValues[] = { "", "t", (char*)imagefile.c_str(), (char*)testfile.c_str(), "--no-compression" };
@@ -585,7 +590,7 @@ namespace UnitTest
 			string testfile = std::string(TEST_CASE_DIRECTORY) + "ConfigurationTest12.txt";
 			string imagefile = std::string(TEST_CASE_DIRECTORY) + "ConfigurationTest12.png";
 
-			std::vector<unsigned char> plain_vector = InitializeTestFiles(testfile, imagefile);
+			InitializeTestFiles(testfile, imagefile);
 
 			int argumentCount = 7;
 			char* argumentValues[] = { "", "t", (char*)imagefile.c_str(), (char*)testfile.c_str(), "-p", "Test", "--no-compression" };
