@@ -43,16 +43,16 @@ public:
         case ConfigurationManager::Option::DisableCompression:
             return variant_value(disableCompression);
         default:
-            break;
+            return -1;
         }
     };
 
 private:
-    ConfigurationManager::Mode mode;
-    std::string imagePath;
-    std::string dataPath;
-    bool encryption;
-    std::string password;
-    bool disableCompression;
+    ConfigurationManager::Mode mode = ConfigurationManager::Mode::HELP;
+    std::string imagePath = "";
+    std::string dataPath = "";
+    bool encryption = false;
+    std::string password = "";
+    bool disableCompression = false;
 
 };

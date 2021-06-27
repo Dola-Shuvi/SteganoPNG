@@ -9,13 +9,6 @@
 ConfigurationManager::ConfigurationManager(int argc, char *commandLine[])
 {
 
-    mode = ConfigurationManager::Mode::HELP;
-    imagePath = "";
-    dataPath = "";
-    encryption = false;
-    password = "";
-    disableCompression = false;
-
     for (int i = 1; i < argc; i++) {
 
 
