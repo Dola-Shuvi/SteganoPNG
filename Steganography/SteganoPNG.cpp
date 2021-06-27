@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
 			}
 
 			CryptoPP::byte* seed = new CryptoPP::byte[SHA256::DIGESTSIZE];
-			memcpy(seed, SteganoPNG::generateSHA256(std::to_string(std::chrono::system_clock::now().time_since_epoch().count())), sizeof(seed));
+			memcpy(seed, SteganoPNG::generateSHA256(std::to_string(std::chrono::system_clock::now().time_since_epoch().count())), SHA256::DIGESTSIZE);
 
 			SteganoPNG::writeLengthHeader((unsigned int)dataToHide.size(), pixel);
 			SteganoPNG::writeFilenameHeader(SteganoPNG::getFileName(dataPath), pixel);
@@ -126,7 +126,7 @@ int main(int argc, char* argv[]) {
 					//In case a password is specified with the -p argument but the data isnt SteganoPNG::Encrypted
 					extractedData = SteganoPNG::Decrypt(key, iv, extractedData);
 				}
-				catch (Exception ex) {
+				catch (Exception) {
 					//ignore error silently
 				}
 			}
@@ -136,7 +136,7 @@ int main(int argc, char* argv[]) {
 				extractedData = SteganoPNG::zlibDecompress(extractedData);
 				extractedData.shrink_to_fit();
 			}
-			catch (Exception ex) {
+			catch (Exception) {
 				//ignore error silently
 			}
 
@@ -293,7 +293,7 @@ void SteganoPNG::decodeOneStep(const char* filename, std::vector<unsigned char> 
 	*_state = state;
 }
 
-void SteganoPNG::encodeOneStep(const char* filename, std::vector<unsigned char>& image, unsigned width, unsigned height, lodepng::State _state) {
+void SteganoPNG::encodeOneStep(const char* filename, const std::vector<unsigned char>& image, unsigned width, unsigned height, lodepng::State _state) {
 	std::vector<unsigned char> png;
 
 	_state.encoder.auto_convert = false;
@@ -350,22 +350,16 @@ void SteganoPNG::writeAllBytes(std::string fileName, std::vector<unsigned char> 
 
 void SteganoPNG::hideDataInImage(std::vector<unsigned char> data, CryptoPP::byte* seedPointer, unsigned char* pixel, std::vector<unsigned char> _image) {
 
-	//Create reversed index.
-	int64_t reversedIndex;
-
-	//Create 8 bit buffer to store bits of each byte.
-	std::bitset<8> buffer;
-
-	//Counter to track which subpixel to read next.
-	int progressOffset;
-
 	std::vector<unsigned int> noise = SteganoPNG::generateNoise(seedPointer, data.size(), _image.size());
 
 	for (int i = 0; i < (int)data.size(); i++) {
-		buffer = data[i];
-		progressOffset = i * 8;
+		//Create 8 bit buffer to store bits of each byte.
+		std::bitset<8> buffer = data[i];
+		//Counter to track which subpixel to read next.
+		int progressOffset = i * 8;
 		for (int64_t ii = 0; ii < 8; ii++) {
-			reversedIndex = 7 - ii;
+			//Create reversed index.
+			int64_t reversedIndex = 7 - ii;
 			pixel[noise.at(ii + progressOffset)] = SteganoPNG::setLastBit(pixel[noise.at(ii + progressOffset)], buffer[reversedIndex]);
 		}
 	}
@@ -380,14 +374,12 @@ std::vector<unsigned char> SteganoPNG::extractDataFromImage(int length, CryptoPP
 	//Create 8 bit bitset to store and convert the read bits.
 	std::bitset<8> extractedByte;
 
-	//Counter to track which subpixel to read next.
-	int progressOffset;
-
 	std::vector<unsigned int> noise = SteganoPNG::generateNoise(seedPointer, data.size(), _image.size());
 
 	//Loop through as many bytes as length tells us to.
 	for (int i = 0; i < length; i++) {
-		progressOffset = i * 8;
+		//Counter to track which subpixel to read next.
+		int progressOffset = i * 8;
 		extractedByte.reset();
 		//For each byte of extracted data loop through 8 subpixels (2 full pixels).
 		for (int64_t ii = 7; ii >= 0; ii--) {
@@ -434,11 +426,9 @@ void SteganoPNG::writeLengthHeader(long length, unsigned char* pixel) {
 	//Create 32 bit bitset to contain header and initialize it with the value of length (how many bytes of data will be hidden in the image)
 	std::bitset<32> header(length);
 
-	//create reversed index
-	int reversedIndex;
-
 	for (int i = 0; i < 32; i++) {
-		reversedIndex = 31 - i;
+		//create reversed index
+		int reversedIndex = 31 - i;
 
 		//Overwrite the byte at position i (0-31) of the decoded subpixel data with a modified byte. 
 		//The LSB of the modified byte is set to the bit value of header[reversedIndex] as the header is written to file starting with the MSB and the bitset starts with the LSB.
@@ -451,11 +441,9 @@ int SteganoPNG::readLengthHeader(unsigned char* pixel) {
 	//Create 32 bit bitset to contain the header thats read from file.
 	std::bitset<32> headerBits;
 
-	//create reversed index
-	int reversedIndex;
-
 	for (int i = 0; i < 32; i++) {
-		reversedIndex = 31 - i;
+		//create reversed index
+		int reversedIndex = 31 - i;
 
 		//Set the bits of the header to the LSB of the read byte.
 		//The bits are written to the bitset in reverse order as the bits in the bitset start with the LSB and the bits read from file start with MSB.
@@ -474,11 +462,9 @@ void SteganoPNG::writeFilenameHeader(std::string fileName, unsigned char* pixel)
 	//Create offset to not overwrite length header.
 	const int offset = 32;
 
-	//create reversed index.
-	int reversedIndex;
-
 	for (int i = 0; i < 2048; i++) {
-		reversedIndex = 2047 - i;
+		//create reversed index.
+		int reversedIndex = 2047 - i;
 
 		//Overwrite the byte at position i (32-2079) of the decoded subpixel data with a modified byte. 
 		//The LSB of the modified byte is set to the bit value of header[reversedIndex] as the header is written to file starting with the MSB and the bitset starts with the LSB.
@@ -494,11 +480,9 @@ std::string SteganoPNG::readFilenameHeader(unsigned char* pixel) {
 	//Create offset to not read length header.
 	const int offset = 32;
 
-	//create reversed index
-	int reversedIndex;
-
 	for (int i = 0; i < 2048; i++) {
-		reversedIndex = 2047 - i;
+		//create reversed index
+		int reversedIndex = 2047 - i;
 
 		//Set the bits of the header to the LSB of the read byte.
 		//The bits are written to the bitset in reverse order as the bits in the bitset start with the LSB and the bits read from file start with MSB.
@@ -530,20 +514,16 @@ void SteganoPNG::writeSeedHeader(CryptoPP::byte* seedPointer, unsigned char* pix
 	//Create 256 bit bitset to contain header and initialize it with the value of length (how many bytes of data will be hidden in the image)
 	std::bitset<8> seedHeader;
 
-	//create reversed index
-	int reversedIndex;
-
 	//Create offset to not read filename header.
 	const int offset = 2080;
 
-	//Counter to track which subpixel to read next.
-	int progressOffset;
-
 	for (int i = 0; i < 32; i++) {
 		seedHeader = std::bitset<8>(seed[i]);
-		progressOffset = i * 8;
+		//Counter to track which subpixel to read next.
+		int progressOffset = i * 8;
 		for (int ii = 0; ii < 8; ii++) {
-			reversedIndex = 7 - ii;
+			//create reversed index
+			int reversedIndex = 7 - ii;
 
 			//Overwrite the byte at position i (2080-2336) of the decoded subpixel data with a modified byte. 
 			//The LSB of the modified byte is set to the bit value of seedHeader[reversedIndex] as the header is written to file starting with the MSB and the bitset starts with the LSB.
@@ -560,22 +540,18 @@ CryptoPP::byte* SteganoPNG::readSeedHeader(unsigned char* pixel) {
 	//Create 8 bit bitset to create a byte.
 	std::bitset<8> headerByte;
 
-	//create reversed index
-	int reversedIndex;
-
 	//create byte array to store read seed header
 	CryptoPP::byte* seed = new CryptoPP::byte[SHA256::DIGESTSIZE];
 
 	//Create offset to not read filename header.
 	const int offset = 2080;
 
-	//Counter to track which subpixel to read next.
-	int progressOffset;
-
 	for (int i = 0; i < 32; i++) {
-		progressOffset = i * 8;
+		//Counter to track which subpixel to read next.
+		int progressOffset = i * 8;
 		for (int ii = 0; ii < 8; ii++) {
-			reversedIndex = 7 - ii;
+			//create reversed index
+			int reversedIndex = 7 - ii;
 
 			//Set the bits of the header to the LSB of the read byte.
 			//The bits are written to the bitset in reverse order as the bits in the bitset start with the LSB and the bits read from file start with MSB.
@@ -668,22 +644,6 @@ CryptoPP::byte* SteganoPNG::generateSHA256(std::string data)
 
 #pragma region Compression
 
-std::vector<CryptoPP::byte> SteganoPNG::zlibCompress(std::vector<CryptoPP::byte> input) {
-	ZlibCompressor zipper;
-	zipper.Put((CryptoPP::byte*)input.data(), input.size());
-	zipper.MessageEnd();
-
-	word64 avail = zipper.MaxRetrievable();
-	if (avail)
-	{
-		std::vector<CryptoPP::byte> compressed;
-		compressed.resize(avail);
-
-		zipper.Get(&compressed[0], compressed.size());
-		return compressed;
-	}
-}
-
 std::vector<CryptoPP::byte> SteganoPNG::zlibDecompress(std::vector<CryptoPP::byte> input) {
 	ZlibDecompressor zipper;
 	zipper.Put((CryptoPP::byte*)input.data(), input.size());
@@ -727,6 +687,22 @@ std::vector<CryptoPP::byte> SteganoPNG::zopfliCompress(std::vector<CryptoPP::byt
 	output.shrink_to_fit();
 
 	return output;
+
+}
+#else
+std::vector<CryptoPP::byte> SteganoPNG::zlibCompress(std::vector<CryptoPP::byte> input) {
+	ZlibCompressor zipper;
+	zipper.Put((CryptoPP::byte*)input.data(), input.size());
+	zipper.MessageEnd();
+
+	word64 avail = zipper.MaxRetrievable();
+	if (avail < 9)
+		throw std::runtime_error("ZLib was not supplied with enough data");
+	std::vector<CryptoPP::byte> compressed;
+	compressed.resize(avail);
+
+	zipper.Get(&compressed[0], compressed.size());
+	return compressed;
 
 }
 #endif // !USEZOPFLI

@@ -11,7 +11,7 @@ namespace SteganoPNG {
 
 	void decodeOneStep(const char* filename, std::vector<unsigned char> *_image, unsigned int *_width, unsigned int *_height, lodepng::State *_state);
 
-	void encodeOneStep(const char* filename, std::vector<unsigned char>& image, unsigned width, unsigned height, lodepng::State _state);
+	void encodeOneStep(const char* filename, const std::vector<unsigned char>& image, unsigned width, unsigned height, lodepng::State _state);
 
 	unsigned char setLastBit(unsigned char byte, int bit);
 
