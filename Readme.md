@@ -29,17 +29,23 @@ Download a precompiled binary on the releases tab or compile them yourself. The 
 Building
 -----
 
+#### Requirements
+
+- A compiler capable of compiling C++17 code
+- Aditionally on unix systems GNU Make
+- Optionally on either platform cmake for more features
+
 First clone this repo with `git clone --recurse-submodules`.
 
 Building on unix systems is greatly simplified by using a Makefile.  Simply run `make` inside the project folder. Building on unix requires the C++ compiler `g++` version 8 to be installed.
 
 Building on windows is as simple as cloning the repository into Visual Studio 2019 and building the **Release** or **Debug** configuration.
 
-The **Release-Zopfli** and **Debug-Zopfli** configurations on Windows contain stronger compression provided by Zopfli but are slightly slower and are disabled by default. To use them you should compile the zopfli submodule that was cloned.
+The **Release-Zopfli** and **Debug-Zopfli** configurations on Windows contain stronger compression provided by Zopfli but are slightly slower and are disabled by default.
 
-If you wish to enable them on unix please uncomment `#define USEZOPFLI` in [SteganoPNG.cpp](https://github.com/Dola-Shuvi/SteganoPNG/blob/master/Steganography/SteganoPNG.cpp) and build the library with `cmake .` followed by `cmake --build .`
+If you wish to enable them on unix please run `make CPPFLAGS=-DUSEZOPFLI` instead.
 
- For information on how to use the feature please run `SteganoPNG -h` .
+For information on how to use the feature please run `SteganoPNG -h` .
 
 Usage
 -----
