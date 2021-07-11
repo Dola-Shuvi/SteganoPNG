@@ -250,10 +250,20 @@ std::vector<unsigned int> SteganoPNG::generateNoise(CryptoPP::byte* seedPointer,
 	std::vector<unsigned int> noise(imageLength);
 	std::iota(begin(noise), end(noise), 0);
 
+	auto uniform = [](size_t a, std::mt19937& rng) {
+		unsigned int rand = rng();
+		unsigned int result = static_cast<unsigned int>((static_cast<float>(rand) / std::mt19937::max()) * a);
+		return result;
+	};
+
 	unsigned int offset = 2336;
+
 	noise.erase(noise.begin(), noise.begin() + offset);
 
-	shuffle(begin(noise), end(noise), g);
+	for (size_t i = noise.size() - 1; i > 0; --i) {
+		unsigned int j = uniform(noise.size() - 1, g);
+		std::swap(noise[i], noise[j]);
+	}
 
 	noise.resize((size_t)(dataLength * 8U));
 
